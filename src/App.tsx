@@ -47,7 +47,7 @@ const App = () => (
             
             {/* Protected routes with Layout */}
             <Route element={<ProtectedRoute />}>
-              {/* Standard user routes */}
+              {/* Main dashboard */}
               <Route path="/dashboard" element={
                 <Layout>
                   <Dashboard />
@@ -60,6 +60,7 @@ const App = () => (
                 </Layout>
               } />
               
+              {/* Learning routes */}
               <Route path="/my-learning" element={
                 <Layout>
                   <LearningPath />
@@ -131,7 +132,7 @@ const App = () => (
                 </Layout>
               } />
               
-              {/* Admin routes - no nested elements in AdminDashboard to avoid duplicate sidebars */}
+              {/* Admin routes */}
               <Route path="/admin" element={
                 <Layout requiredRoles={['admin']}>
                   <AdminDashboard />
@@ -139,31 +140,31 @@ const App = () => (
               } />
               
               <Route path="/admin/courses" element={
-                <Layout requiredRoles={['admin']}>
+                <Layout requiredRoles={['admin']} showSidebar={false}>
                   <AdminCourseManagement />
                 </Layout>
               } />
               
               <Route path="/admin/courses/:courseId/lessons" element={
-                <Layout requiredRoles={['admin']}>
+                <Layout requiredRoles={['admin']} showSidebar={false}>
                   <CourseLessons />
                 </Layout>
               } />
               
               <Route path="/admin/courses/:courseId/quizzes" element={
-                <Layout requiredRoles={['admin']}>
+                <Layout requiredRoles={['admin']} showSidebar={false}>
                   <AdminQuizzes />
                 </Layout>
               } />
               
               <Route path="/admin/courses/:courseId/quizzes/:quizId/questions" element={
-                <Layout requiredRoles={['admin']}>
+                <Layout requiredRoles={['admin']} showSidebar={false}>
                   <AdminQuizQuestions />
                 </Layout>
               } />
               
               <Route path="/admin/learning-paths" element={
-                <Layout requiredRoles={['admin']}>
+                <Layout requiredRoles={['admin']} showSidebar={false}>
                   <AdminLearningPaths />
                 </Layout>
               } />
