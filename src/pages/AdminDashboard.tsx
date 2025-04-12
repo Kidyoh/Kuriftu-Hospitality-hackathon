@@ -141,9 +141,15 @@ export default function AdminDashboard() {
 
   const handleAddCourse = async (values: z.infer<typeof courseSchema>) => {
     try {
+      // Fix: Ensure we're passing an object with required fields properly set
       const { error } = await supabase
         .from('courses')
-        .insert([values]);
+        .insert({
+          title: values.title, // Title is required
+          description: values.description,
+          difficulty_level: values.difficulty_level,
+          estimated_hours: values.estimated_hours
+        });
         
       if (error) throw error;
       
@@ -166,9 +172,15 @@ export default function AdminDashboard() {
 
   const handleAddPath = async (values: z.infer<typeof pathSchema>) => {
     try {
+      // Fix: Ensure we're passing an object with required fields properly set
       const { error } = await supabase
         .from('learning_paths')
-        .insert([values]);
+        .insert({
+          name: values.name, // Name is required
+          description: values.description,
+          department: values.department,
+          role: values.role as "admin" | "manager" | "staff" | "trainee" // Role is required and must be one of the allowed values
+        });
         
       if (error) throw error;
       
