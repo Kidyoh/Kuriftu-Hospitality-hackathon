@@ -197,13 +197,24 @@ export default function AdminQuizzes() {
     }
     
     try {
-      // Delete quiz responses first
-      await supabase
-        .from('quiz_responses')
-        .delete()
-        .in('attempt_id', (qb) => {
-          qb.select('id').from('quiz_attempts').eq('quiz_id', id);
-        });
+      // First fetch all quiz attempts for this quiz
+      const { data: attemptData, error: attemptError } = await supabase
+        .from('quiz_attempts')
+        .select('id')
+        .eq('quiz_id', id);
+        
+      if (attemptError) throw attemptError;
+      
+      // Get all attempt IDs as an array
+      const attemptIds = attemptData?.map(attempt => attempt.id) || [];
+      
+      // Delete quiz responses if there are any attempts
+      if (attemptIds.length > 0) {
+        await supabase
+          .from('quiz_responses')
+          .delete()
+          .in('attempt_id', attemptIds);
+      }
         
       // Delete quiz attempts
       await supabase
@@ -211,13 +222,24 @@ export default function AdminQuizzes() {
         .delete()
         .eq('quiz_id', id);
       
-      // Delete quiz options
-      await supabase
-        .from('quiz_options')
-        .delete()
-        .in('question_id', (qb) => {
-          qb.select('id').from('quiz_questions').eq('quiz_id', id);
-        });
+      // First fetch all question IDs for this quiz
+      const { data: questionData, error: questionError } = await supabase
+        .from('quiz_questions')
+        .select('id')
+        .eq('quiz_id', id);
+        
+      if (questionError) throw questionError;
+      
+      // Get all question IDs as an array
+      const questionIds = questionData?.map(question => question.id) || [];
+      
+      // Delete quiz options if there are any questions
+      if (questionIds.length > 0) {
+        await supabase
+          .from('quiz_options')
+          .delete()
+          .in('question_id', questionIds);
+      }
       
       // Delete quiz questions
       await supabase
