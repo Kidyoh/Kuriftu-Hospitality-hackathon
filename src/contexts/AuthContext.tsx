@@ -13,6 +13,8 @@ interface UserProfile {
   position: string | null;
   avatar_url: string | null;
   onboarding_completed: boolean;
+  phone: string | null;
+  experience_level: string | null;
 }
 
 interface AuthContextType {
