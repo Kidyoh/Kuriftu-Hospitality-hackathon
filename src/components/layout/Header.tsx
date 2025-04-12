@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, Menu, Search } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Bell, Menu, Search, UserCircle, Settings, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -23,6 +23,7 @@ interface HeaderProps {
 
 export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
   const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
   
   const getInitials = () => {
     if (!profile) return '';
@@ -81,11 +82,18 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem>Profile</DropdownMenuItem>
-                  <DropdownMenuItem>Settings</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+                    <UserCircle className="h-4 w-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()}>
+                <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
+                  <LogOut className="h-4 w-4 mr-2" />
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
