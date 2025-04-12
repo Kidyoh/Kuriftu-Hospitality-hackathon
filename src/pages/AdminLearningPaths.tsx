@@ -46,6 +46,7 @@ export default function AdminLearningPaths() {
   const fetchUserLearningPaths = async () => {
     setIsLoading(true);
     try {
+      // Fix the join query by explicitly specifying the join column
       const { data, error } = await supabase
         .from('user_learning_paths')
         .select(`
@@ -68,10 +69,25 @@ export default function AdminLearningPaths() {
         return;
       }
 
-      const transformedData = data.map(item => ({
-        ...item,
-        user_details: item.profiles as UserLearningPath['user_details']
-      }));
+      // Transform the data with proper type handling
+      const transformedData = data.map(item => {
+        // Make sure profiles is treated as the correct type or provide defaults
+        const profiles = item.profiles as any;
+        return {
+          ...item,
+          user_details: profiles ? {
+            first_name: profiles.first_name || '',
+            last_name: profiles.last_name || '',
+            department: profiles.department || '',
+            position: profiles.position || ''
+          } : {
+            first_name: '',
+            last_name: '',
+            department: '',
+            position: ''
+          }
+        };
+      });
 
       setUserLearningPaths(transformedData);
     } catch (error) {
@@ -312,7 +328,7 @@ export default function AdminLearningPaths() {
                       <Badge variant={path.ai_generated ? "secondary" : "outline"}>
                         {path.ai_generated ? "AI Generated" : "Custom"}
                       </Badge>
-                      <Badge variant="success">
+                      <Badge variant="secondary">
                         Approved
                       </Badge>
                     </div>
@@ -458,3 +474,4 @@ export default function AdminLearningPaths() {
     </div>
   );
 }
+

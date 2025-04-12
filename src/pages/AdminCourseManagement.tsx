@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -49,7 +48,6 @@ export default function AdminCourseManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   
-  // Form state for new/edit course
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentCourse, setCurrentCourse] = useState<Partial<Course>>({
@@ -137,7 +135,6 @@ export default function AdminCourseManagement() {
       let result;
       
       if (isEditing && currentCourse.id) {
-        // Update existing course
         result = await supabase
           .from('courses')
           .update({
@@ -157,7 +154,6 @@ export default function AdminCourseManagement() {
           description: "The course has been successfully updated."
         });
       } else {
-        // Create new course
         result = await supabase
           .from('courses')
           .insert({
@@ -181,7 +177,6 @@ export default function AdminCourseManagement() {
         throw result.error;
       }
       
-      // Reload courses
       loadCourses();
       handleDialogClose();
       
@@ -215,7 +210,6 @@ export default function AdminCourseManagement() {
         description: "The course has been successfully deleted."
       });
       
-      // Reload courses
       loadCourses();
       
     } catch (error) {
@@ -279,14 +273,14 @@ export default function AdminCourseManagement() {
           </div>
           
           <Select
-            value={statusFilter || ""}
-            onValueChange={(value) => setStatusFilter(value || null)}
+            value={statusFilter || "all"}
+            onValueChange={(value) => setStatusFilter(value === "all" ? null : value)}
           >
             <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="Draft">Draft</SelectItem>
               <SelectItem value="Published">Published</SelectItem>
               <SelectItem value="Archived">Archived</SelectItem>

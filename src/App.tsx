@@ -103,15 +103,10 @@ const App = () => (
               </ProtectedRoute>
             } />
             
+            {/* Fix duplicate routes with different components by consolidating them */}
             <Route path="/admin/users" element={
               <ProtectedRoute requiredRoles={['admin']}>
                 <Navigate to="/admin?tab=users" replace />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/admin/learning-paths" element={
-              <ProtectedRoute requiredRoles={['admin']}>
-                <Navigate to="/admin?tab=paths" replace />
               </ProtectedRoute>
             } />
             
