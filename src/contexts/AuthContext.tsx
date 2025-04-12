@@ -3,6 +3,7 @@ import React, { createContext, useState, useEffect, useContext, ReactNode } from
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/components/ui/use-toast';
 
 interface UserProfile {
   id: string;
@@ -40,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        console.log('Auth state changed:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -69,42 +71,109 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (error) {
-      console.error('Error fetching user profile:', error);
-      return;
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+
+      console.log('Fetched user profile:', data);
+      setProfile(data as UserProfile);
+      
+      // If we're not at the onboarding page and onboarding is not completed,
+      // navigate to onboarding
+      if (data && !data.onboarding_completed && window.location.pathname !== '/onboarding') {
+        console.log('Redirecting to onboarding from context');
+        navigate('/onboarding');
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching profile:', err);
     }
-
-    setProfile(data as UserProfile);
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Login failed",
+          description: error.message,
+        });
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully logged in.",
+        });
+      }
+      return { error };
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: err.message || "An unexpected error occurred",
+      });
+      return { error: err };
+    }
   };
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
         },
-      },
-    });
-    return { error };
+      });
+      
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Registration failed",
+          description: error.message,
+        });
+      } else {
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created. Complete the onboarding to get started.",
+        });
+      }
+      return { error };
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: err.message || "An unexpected error occurred",
+      });
+      return { error: err };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/auth');
+    try {
+      await supabase.auth.signOut();
+      navigate('/auth');
+      toast({
+        title: "Logged out",
+        description: "You've been successfully logged out.",
+      });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Logout failed",
+        description: err.message || "An unexpected error occurred",
+      });
+    }
   };
 
   return (

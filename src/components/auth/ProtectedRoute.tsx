@@ -2,6 +2,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -15,9 +16,14 @@ export default function ProtectedRoute({
   const { user, profile, isLoading } = useAuth();
   const location = useLocation();
 
-  // While we're loading auth state, show nothing
+  // While we're loading auth state, show a nice loading indicator
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading...</span>
+      </div>
+    );
   }
   
   // If not logged in, redirect to auth page
@@ -33,9 +39,9 @@ export default function ProtectedRoute({
     }
   }
 
-  // If a user hasn't completed onboarding and is not on the onboarding route
-  // and the current path is not already the onboarding path, redirect to onboarding
+  // If a user hasn't completed onboarding and is not already on the onboarding route
   if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
+    console.log('Redirecting to onboarding, current path:', location.pathname);
     return <Navigate to="/onboarding" replace />;
   }
 
