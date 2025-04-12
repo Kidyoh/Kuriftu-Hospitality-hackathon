@@ -84,14 +84,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Error fetching user profile:', error);
-        setIsLoading(false);
+        
+        // If profile doesn't exist, create it
+        if (error.code === 'PGRST116') {
+          await createInitialProfile(userId);
+        } else {
+          setIsLoading(false);
+        }
         return;
       }
 
       console.log('Fetched user profile:', data);
       setProfile(data as UserProfile);
+      setIsLoading(false);
     } catch (err) {
       console.error('Unexpected error fetching profile:', err);
+      setIsLoading(false);
+    }
+  };
+
+  const createInitialProfile = async (userId: string) => {
+    try {
+      // Get user metadata from auth
+      const { data: { user } } = await supabase.auth.admin.getUserById(userId);
+      
+      const firstName = user?.user_metadata?.first_name || '';
+      const lastName = user?.user_metadata?.last_name || '';
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          first_name: firstName,
+          last_name: lastName,
+          role: 'trainee',
+          onboarding_completed: false
+        })
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('Error creating initial profile:', error);
+      } else {
+        console.log('Initial profile created:', data);
+        setProfile(data as UserProfile);
+      }
+    } catch (err) {
+      console.error('Unexpected error creating initial profile:', err);
     } finally {
       setIsLoading(false);
     }

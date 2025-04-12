@@ -1,5 +1,25 @@
 
-project_id = "kcfsqlbixvxotjtddhhl"
+# This file is used by the Supabase CLI to manage your project
+# Visit https://supabase.com/docs/reference/cli to learn more
 
-[functions.ai-recommendations]
-verify_jwt = true
+[api]
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[inbucket]
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["https://localhost:5173"]
+jwt_expiry = 3600
+disable_signup = false

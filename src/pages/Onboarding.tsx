@@ -150,29 +150,60 @@ export default function Onboarding() {
         experience_level: experienceLevel
       });
 
-      const { error, data } = await supabase
+      const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
-        .update({
-          onboarding_completed: true,
-          department,
-          position,
-          phone,
-          experience_level: experienceLevel
-        })
+        .select('*')
         .eq('id', user.id)
-        .select();
+        .single();
 
-      if (error) {
-        console.error('Error completing onboarding:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: `Failed to complete onboarding: ${error.message}`,
-        });
-        return false;
+      if (fetchError && fetchError.code === 'PGRST116') {
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            onboarding_completed: true,
+            department,
+            position,
+            phone,
+            experience_level: experienceLevel,
+            first_name: user.user_metadata?.first_name || '',
+            last_name: user.user_metadata?.last_name || '',
+            role: 'trainee'
+          });
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: `Failed to create profile: ${insertError.message}`,
+          });
+          return false;
+        }
+      } else {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            onboarding_completed: true,
+            department,
+            position,
+            phone,
+            experience_level: experienceLevel
+          })
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.error('Error updating profile:', updateError);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: `Failed to update profile: ${updateError.message}`,
+          });
+          return false;
+        }
       }
 
-      console.log("Onboarding completed successfully, profile data:", data);
+      console.log("Onboarding completed successfully");
       
       await refreshProfile();
       
@@ -181,7 +212,7 @@ export default function Onboarding() {
         description: "You're all set to start using the platform.",
       });
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Unexpected error completing onboarding:', error);
       toast({
         variant: "destructive",
