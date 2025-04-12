@@ -1,73 +1,122 @@
-# Welcome to your Lovable project
+# 🌐 Kuriftu Hospitality L&D Platform
 
-## Project info
+A customized, AI-powered **Learning & Development platform** built for **Kuriftu Hotel** and presented at the **Hospitality Hackathon**. This platform is designed to revolutionize staff training and onboarding in the hospitality sector through intelligent content delivery, AI-generated assessments, and real-time analytics.
 
-**URL**: https://lovable.dev/projects/c6380ae7-4790-4917-8fff-ab430a72cbd3
+---
 
-## How can I edit this code?
+## 🏨 Project Purpose
 
-There are several ways of editing your application.
+Kuriftu is committed to setting new standards in African hospitality. This platform supports that mission by enabling:
 
-**Use Lovable**
+- Seamless **onboarding** of new hotel staff
+- Continuous **training and upskilling**
+- AI-enhanced **learning experiences**
+- Centralized **management and review workflows**
+- Multilingual support for diverse teams
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c6380ae7-4790-4917-8fff-ab430a72cbd3) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## ✨ Features
 
-**Use your preferred IDE**
+### ✅ Core Modules
+- **Role-Based Onboarding** – Personalized training flows for receptionists, kitchen staff, housekeeping, and management.
+- **Course Management** – Structured learning paths with modular video-based content.
+- **Progress Tracking** – Staff can view their progress, while managers get oversight on team performance.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 🧠 AI Capabilities
+- **AI-Generated Quizzes** – Automatically create assessments from training videos using OpenAI.
+- *(Coming Soon)* Smart next-lesson recommendations based on user engagement and performance.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 📹 Video Learning Management
+- Upload and control training videos by department or topic.
+- Mark lessons as required or optional.
 
-Follow these steps:
+### ↺ Admin Workflows
+- Multi-role system: Admins, Instructors, Staff
+- Course submission and review approval flows
+- Visibility and version control
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 🌍 Multilingual Support
+- UI and course content adaptable to multiple languages
+- Ideal for multinational teams or teams with diverse linguistic backgrounds
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 📊 Analytics Dashboard
+- Completion rates, quiz scores, and time-on-task insights
+- Exportable training reports for HR and leadership
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+## 🛠️ Tech Stack
+
+| Layer         | Tech Used                     |
+|---------------|-------------------------------|
+| Frontend      | React + TypeScript + Vite     |
+| Styling       | Tailwind CSS + shadcn/ui      |
+| Backend       | Supabase (PostgreSQL, Auth, Storage) |
+| AI Services   | OpenAI API (quiz generation)  |
+| Hosting       | Lovable (temp); planned cloud/VPS |
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repo
+
+```bash
+git clone <your-repo-url>
+cd <your-project-directory>
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Run locally
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### 4. Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Create a `.env` file and set your credentials:
 
-**Use GitHub Codespaces**
+```env
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+OPENAI_API_KEY=your-openai-api-key
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 🧪 Development Status
 
-This project is built with:
+| Feature                      | Status       |
+|-----------------------------|--------------|
+| User Onboarding             | ✅ Complete  |
+| Course Video Management     | ✅ Complete  |
+| AI Quiz Generation          | ➶ In Progress |
+| Admin Review Workflow       | ➶ In Progress |
+| Multilingual UI             | ➶ In Progress |
+| Analytics Dashboard         | ➶ In Progress |
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## 🤝 Contributing
 
-Simply open [Lovable](https://lovable.dev/projects/c6380ae7-4790-4917-8fff-ab430a72cbd3) and click on Share -> Publish.
+This project was developed as part of the **Hospitality Hackathon** for **Kuriftu Hotel**. Contributions to improve its scale, design, and capabilities are welcome. Please fork and submit a pull request, or open an issue to discuss enhancements.
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes it is!
+## 📜 License
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+MIT License. See the `LICENSE` file for full details.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+---
+
+> *"We believe Africa’s hospitality deserves world-class learning solutions. This platform is a step toward that vision."*
+
+Built with ❤️ for Kuriftu Hotel by hospitality innovators and technologists.
+
