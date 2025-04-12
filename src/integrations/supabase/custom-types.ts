@@ -43,6 +43,7 @@ export interface ExtendedDatabase extends Database {
           id: string;
           user_id: string;
           lesson_id: string;
+          course_id: string;
           completed: boolean;
           progress: number;
           started_at: string | null;
@@ -52,6 +53,7 @@ export interface ExtendedDatabase extends Database {
           id?: string;
           user_id: string;
           lesson_id: string;
+          course_id: string;
           completed?: boolean;
           progress?: number;
           started_at?: string | null;
@@ -61,6 +63,7 @@ export interface ExtendedDatabase extends Database {
           id?: string;
           user_id?: string;
           lesson_id?: string;
+          course_id?: string;
           completed?: boolean;
           progress?: number;
           started_at?: string | null;
@@ -79,6 +82,69 @@ export interface ExtendedDatabase extends Database {
             columns: ["lesson_id"];
             isOneToOne: false;
             referencedRelation: "course_lessons";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_lessons_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "courses";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      
+      lesson_views: {
+        Row: {
+          id: string;
+          user_id: string;
+          lesson_id: string;
+          course_id: string;
+          view_count: number;
+          first_viewed_at: string;
+          last_viewed_at: string;
+          total_duration: number;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          lesson_id: string;
+          course_id: string;
+          view_count?: number;
+          first_viewed_at?: string;
+          last_viewed_at?: string;
+          total_duration?: number;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          lesson_id?: string;
+          course_id?: string;
+          view_count?: number;
+          first_viewed_at?: string;
+          last_viewed_at?: string;
+          total_duration?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "lesson_views_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lesson_views_lesson_id_fkey";
+            columns: ["lesson_id"];
+            isOneToOne: false;
+            referencedRelation: "course_lessons";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lesson_views_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "courses";
             referencedColumns: ["id"];
           }
         ];

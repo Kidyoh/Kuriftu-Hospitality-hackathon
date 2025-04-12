@@ -53,9 +53,9 @@ function CourseCard({
         <div className="flex items-start justify-between">
           <CardTitle className="text-base line-clamp-1">{title}</CardTitle>
           {difficulty_level && (
-            <Badge variant="outline" className={cn("capitalize", getLevelColor())}>
+          <Badge variant="outline" className={cn("capitalize", getLevelColor())}>
               {difficulty_level}
-            </Badge>
+          </Badge>
           )}
         </div>
         <CardDescription className="line-clamp-2 text-xs">
@@ -355,10 +355,10 @@ export function RecommendedCourses() {
           </div>
         ) : courses.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {courses.map((course) => (
+          {courses.map((course) => (
               <CourseCard key={course.id} {...course} />
-            ))}
-          </div>
+          ))}
+        </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-sm text-muted-foreground mb-4">No recommended courses yet</p>

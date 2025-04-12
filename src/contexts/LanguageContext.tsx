@@ -10,276 +10,552 @@ export const languageNames = {
   or: 'Oromiffa'
 };
 
-// Interface for the context value
-interface LanguageContextType {
+// Define the shape of our language context
+interface LanguageContextValue {
   language: Language;
-  setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  setLanguage: (language: Language) => void;
+  t: (key: string, args?: Record<string, any>) => string;
 }
 
-// Create the context with default values
-const LanguageContext = createContext<LanguageContextType>({
+// Create the context with a default value
+const LanguageContext = createContext<LanguageContextValue>({
   language: 'en',
   setLanguage: () => {},
-  t: (key: string) => key,
+  t: () => '',
 });
 
 // Translations for each language
-const translations: Record<Language, Record<string, string>> = {
+const translations: Record<Language, Record<string, any>> = {
   en: {
-    // General
-    'app.title': 'Kuriftu Learning Village',
-    'app.loading': 'Loading...',
-    'app.error': 'Error',
-    'app.success': 'Success',
-    'app.save': 'Save',
-    'app.cancel': 'Cancel',
-    'app.delete': 'Delete',
-    'app.edit': 'Edit',
-    'app.back': 'Back',
-    'app.next': 'Next',
-    'app.previous': 'Previous',
-    'app.submit': 'Submit',
+    common: {
+      welcome: 'Welcome to Learning Village',
+      loading: 'Loading...',
+      error: 'An error occurred',
+      submit: 'Submit',
+      cancel: 'Cancel',
+      save: 'Save',
+      delete: 'Delete',
+      edit: 'Edit',
+      view: 'View',
+      search: 'Search',
+      filter: 'Filter',
+      sort: 'Sort',
+      notFound: 'Not Found',
+      accessDenied: 'Access Denied',
+      success: 'Success',
+      failure: 'Failure',
+      created: 'Created',
+      updated: 'Updated',
+      deleted: 'Deleted',
+    },
     
-    // Auth
-    'auth.login': 'Login',
-    'auth.logout': 'Logout',
-    'auth.register': 'Register',
-    'auth.email': 'Email',
-    'auth.password': 'Password',
+    auth: {
+      signIn: 'Sign In',
+      signUp: 'Sign Up',
+      signOut: 'Sign Out',
+      forgotPassword: 'Forgot Password',
+      resetPassword: 'Reset Password',
+      emailPlaceholder: 'Enter your email',
+      passwordPlaceholder: 'Enter your password',
+      confirmPassword: 'Confirm Password',
+      fullName: 'Full Name',
+      phone: 'Phone Number',
+      role: 'Role',
+      department: 'Department',
+      position: 'Position',
+      experience: 'Experience Level',
+      verifyEmail: 'Verify Email',
+      verifyCode: 'Verification Code',
+      newAccount: 'Create New Account',
+      hasAccount: 'Already have an account?',
+      signInWithEmail: 'Sign In with Email',
+      signInWithGoogle: 'Sign In with Google',
+      login: 'Login',
+      logout: 'Logout',
+      register: 'Register',
+      email: 'Email',
+      password: 'Password',
+    },
     
-    // Navigation
-    'nav.home': 'Home',
-    'nav.courses': 'Courses',
-    'nav.profile': 'Profile',
-    'nav.dashboard': 'Dashboard',
+    courses: {
+      myCourses: 'My Courses',
+      allCourses: 'All Courses',
+      enrolledCourses: 'Enrolled Courses',
+      recommendedCourses: 'Recommended Courses',
+      popularCourses: 'Popular Courses',
+      newCourses: 'New Courses',
+      completedCourses: 'Completed Courses',
+      inProgressCourses: 'In Progress Courses',
+      courseDetails: 'Course Details',
+      courseDescription: 'Course Description',
+      courseObjectives: 'Course Objectives',
+      courseDuration: 'Course Duration',
+      courseLevel: 'Course Level',
+      courseInstructor: 'Course Instructor',
+      courseRating: 'Course Rating',
+      courseReviews: 'Course Reviews',
+      courseMaterials: 'Course Materials',
+      coursePrerequisites: 'Course Prerequisites',
+      courseSyllabus: 'Course Syllabus',
+      courseProgress: 'Course Progress',
+      courseCompletion: 'Course Completion',
+      courseEnroll: 'Enroll Now',
+      courseUnenroll: 'Unenroll',
+      courseStart: 'Start Course',
+      courseResume: 'Resume Course',
+      filter: 'Filter',
+      sort: 'Sort',
+      search: 'Search',
+      department: 'Department',
+      level: 'Level',
+      duration: 'Duration',
+      ratings: 'Ratings',
+      progress: 'Progress',
+      status: 'Status',
+      lessons: 'Lessons',
+      quizzes: 'Quizzes',
+      attachments: 'Attachments',
+      noCoursesFound: 'No courses found',
+      findCourses: 'Find Courses',
+      difficultyLevel: 'Difficulty Level',
+      duration_beginner: 'Beginner',
+      duration_intermediate: 'Intermediate',
+      duration_advanced: 'Advanced',
+      available: 'Available',
+      notAvailable: 'Not Available',
+      enrolled: 'Enrolled',
+      notEnrolled: 'Not Enrolled',
+      dateEnrolled: 'Date Enrolled',
+      dateCompleted: 'Date Completed',
+      completed: 'Completed',
+      notCompleted: 'Not Completed',
+      courseActions: 'Course Actions',
+      viewLessons: 'View Lessons',
+      viewQuizzes: 'View Quizzes',
+      startCourse: 'Start Course',
+      continueCourse: 'Continue Course',
+      retry: 'Retry',
+      title: 'Courses',
+      all: 'All Courses',
+      my: 'My Courses',
+      enroll: 'Enroll Now',
+      continue: 'Continue Learning',
+      review: 'Review Course',
+      inProgress: 'In Progress',
+      notStarted: 'Not Started',
+      markAsCompleted: 'Mark as Completed',
+      markAsIncomplete: 'Mark as Incomplete',
+      hours: 'hrs',
+      difficulty: 'Est. Time',
+      beginner: 'Beginner',
+      intermediate: 'Intermediate',
+      advanced: 'Advanced',
+      expert: 'Expert',
+      take: 'Take Quiz',
+      notFound: 'Course not found',
+      notFoundDescription: 'The course you\'re looking for doesn\'t exist or you don\'t have access to it.',
+      backToCourses: 'Back to Courses',
+      noLessons: 'No lessons available',
+      noLessonsDescription: 'This course doesn\'t have any lessons yet.',
+      noQuizzes: 'No quizzes available',
+      noQuizzesDescription: 'This course doesn\'t have any quizzes yet.',
+    },
     
-    // Courses
-    'courses.title': 'Courses',
-    'courses.all': 'All Courses',
-    'courses.my': 'My Courses',
-    'courses.enroll': 'Enroll Now',
-    'courses.continue': 'Continue Learning',
-    'courses.review': 'Review Course',
-    'courses.completed': 'Completed',
-    'courses.inProgress': 'In Progress',
-    'courses.notStarted': 'Not Started',
-    'courses.markAsCompleted': 'Mark as Completed',
-    'courses.markAsIncomplete': 'Mark as Incomplete',
-    'courses.lessons': 'Lessons',
-    'courses.quizzes': 'Quizzes',
-    'courses.progress': 'Progress',
-    'courses.hours': 'hrs',
-    'courses.difficulty': 'Est. Time',
-    'courses.beginner': 'Beginner',
-    'courses.intermediate': 'Intermediate',
-    'courses.advanced': 'Advanced',
-    'courses.expert': 'Expert',
-    'courses.take': 'Take Quiz',
-    'courses.notFound': 'Course not found',
-    'courses.notFoundDescription': 'The course you\'re looking for doesn\'t exist or you don\'t have access to it.',
-    'courses.backToCourses': 'Back to Courses',
-    'courses.noLessons': 'No lessons available',
-    'courses.noLessonsDescription': 'This course doesn\'t have any lessons yet.',
-    'courses.noQuizzes': 'No quizzes available',
-    'courses.noQuizzesDescription': 'This course doesn\'t have any quizzes yet.',
+    dashboard: {
+      welcomeBack: 'Welcome Back',
+      continueLesson: 'Continue Lesson',
+      recentActivity: 'Recent Activity',
+      upcomingCourses: 'Upcoming Courses',
+      completedCourses: 'Completed Courses',
+      achievementEarned: 'Achievement Earned',
+      progressSummary: 'Progress Summary',
+      todayPlan: 'Today\'s Plan',
+      announcements: 'Announcements',
+      suggestedCourses: 'Suggested Courses',
+    },
     
-    // Quiz-related
-    'quiz.start': 'Start Quiz',
-    'quiz.submit': 'Submit Quiz',
-    'quiz.passed': 'Quiz Passed',
-    'quiz.failed': 'Quiz Failed',
-    'quiz.tryAgain': 'Try Again',
-    'quiz.review': 'Review Quiz',
-    'quiz.question': 'Question',
+    notifications: {
+      newCourse: 'New Course Available',
+      courseUpdated: 'Course Updated',
+      courseCompleted: 'Course Completed',
+      quizAvailable: 'Quiz Available',
+      quizCompleted: 'Quiz Completed',
+      systemUpdate: 'System Update',
+    },
     
-    // Errors
-    'error.failedToLoad': 'Failed to load data',
-    'error.failedToUpdate': 'Failed to update',
-    'error.loginRequired': 'You must be logged in',
-    'error.failedToStart': 'Failed to start or continue the course',
+    errors: {
+      notFound: 'Not Found',
+      accessDenied: 'Access Denied',
+      serverError: 'Server Error',
+      networkError: 'Network Error',
+      loginRequired: 'Login Required',
+      invalidCredentials: 'Invalid Credentials',
+      emailExists: 'Email Already Exists',
+      weakPassword: 'Password Too Weak',
+      passwordMismatch: 'Passwords Do Not Match',
+      requiredField: 'This Field is Required',
+      invalidEmail: 'Invalid Email',
+      invalidPhone: 'Invalid Phone Number',
+      enrollmentFailed: 'Failed to Enroll',
+      courseFetchFailed: 'Failed to Fetch Course',
+      lessonFetchFailed: 'Failed to Fetch Lesson',
+      progressUpdateFailed: 'Failed to Update Progress',
+      failedToLoad: 'Failed to load data',
+      failedToUpdate: 'Failed to update',
+      failedToStart: 'Failed to start or continue the course',
+    },
     
-    // Success messages
-    'success.lessonCompleted': 'Lesson marked as completed',
-    'success.courseCompleted': 'Congratulations! You\'ve completed this course!',
-    'success.progressUpdated': 'Progress has been updated',
+    success: {
+      loginSuccess: 'Login Successful',
+      accountCreated: 'Account Created',
+      profileUpdated: 'Profile Updated',
+      passwordReset: 'Password Reset',
+      emailVerified: 'Email Verified',
+      courseEnrolled: 'Course Enrolled',
+      courseCompleted: 'Course Completed',
+      quizPassed: 'Quiz Passed',
+      feedbackSubmitted: 'Feedback Submitted',
+      progressUpdated: 'Progress Updated',
+      lessonCompleted: 'Lesson marked as completed',
+    },
+    
+    progress: {
+      trackProgress: "Track Your Progress",
+      trackProgressDesc: "Update your progress for this lesson",
+      currentProgress: "Current Progress",
+      updateProgress: "Update Progress",
+      saveProgress: "Save Progress",
+      markComplete: "Mark Complete",
+      markIncomplete: "Mark Incomplete",
+      progressUpdated: "Progress Updated",
+      progressUpdatedDesc: "Your progress has been updated to {progress}%",
+      lessonCompleted: "Lesson Completed",
+      lessonCompletedDesc: "Congratulations on completing this lesson!",
+      error: "Error",
+      errorUpdating: "Failed to update your progress. Please try again."
+    },
+    
+    nav: {
+      home: 'Home',
+      courses: 'Courses',
+      profile: 'Profile',
+      dashboard: 'Dashboard',
+    },
+    
+    quiz: {
+      start: 'Start Quiz',
+      submit: 'Submit Quiz',
+      passed: 'Quiz Passed',
+      failed: 'Quiz Failed',
+      tryAgain: 'Try Again',
+      review: 'Review Quiz',
+      question: 'Question',
+    },
+    
+    app: {
+      title: 'Kuriftu Learning Village',
+      loading: 'Loading...',
+      error: 'Error',
+      success: 'Success',
+      save: 'Save',
+      cancel: 'Cancel',
+      delete: 'Delete',
+      edit: 'Edit',
+      back: 'Back',
+      next: 'Next',
+      previous: 'Previous',
+      submit: 'Submit',
+    },
   },
   
   am: {
-    // General
-    'app.title': 'ኩሪፍቱ የመማሪያ መንደር',
-    'app.loading': 'በመጫን ላይ...',
-    'app.error': 'ስህተት',
-    'app.success': 'ተሳክቷል',
-    'app.save': 'አስቀምጥ',
-    'app.cancel': 'ሰርዝ',
-    'app.delete': 'አጥፋ',
-    'app.edit': 'አርትዕ',
-    'app.back': 'ተመለስ',
-    'app.next': 'ቀጣይ',
-    'app.previous': 'ቀዳሚ',
-    'app.submit': 'አስገባ',
+    common: {
+      welcome: 'የመማር መንደር እንኳን ደህና መጡ',
+      loading: 'በመጫን ላይ...',
+      error: 'ስህተት ተፈጥሯል',
+      submit: 'አስገባ',
+      cancel: 'ይቅር',
+      save: 'አስቀምጥ',
+      delete: 'ሰርዝ',
+      edit: 'አርትዕ',
+      view: 'እይታ',
+      search: 'ፈልግ',
+      filter: 'አጣራ',
+      sort: 'መደብ',
+      notFound: 'አልተገኘም',
+      accessDenied: 'መዳረሻ ተከልክሏል',
+      success: 'ተሳክቷል',
+      failure: 'አልተሳካም',
+      created: 'ተፈጥሯል',
+      updated: 'ተዘምኗል',
+      deleted: 'ተሰርዟል',
+    },
     
-    // Auth
-    'auth.login': 'ግባ',
-    'auth.logout': 'ውጣ',
-    'auth.register': 'ተመዝገብ',
-    'auth.email': 'ኢሜይል',
-    'auth.password': 'የይለፍ ቃል',
+    auth: {
+      signIn: 'ግባ',
+      signUp: 'ይመዝገቡ',
+      signOut: 'ውጣ',
+      forgotPassword: 'የይለፍ ቃል ረሳኽው?',
+      resetPassword: 'የይለፍ ቃል ዳግም አስጀምር',
+      emailPlaceholder: 'ኢሜል አድራሻዎን ያስገቡ',
+      passwordPlaceholder: 'የይለፍ ቃልዎን ያስገቡ',
+      confirmPassword: 'የይለፍ ቃል ያረጋግጡ',
+      fullName: 'ሙሉ ስም',
+      phone: 'ስልክ ቁጥር',
+      role: 'ሚና',
+      department: 'ክፍል',
+      position: 'ቦታ',
+      experience: 'የልምድ ደረጃ',
+      verifyEmail: 'ኢሜል ያረጋግጡ',
+      verifyCode: 'የማረጋገጫ ኮድ',
+      newAccount: 'አዲስ መለያ ይፍጠሩ',
+      hasAccount: 'አስቀድመው መለያ አለዎት?',
+      signInWithEmail: 'በኢሜል ይግቡ',
+      signInWithGoogle: 'በጉግል ይግቡ',
+      login: 'ግባ',
+      logout: 'ውጣ',
+      register: 'ተመዝገብ',
+      email: 'ኢሜይል',
+      password: 'የይለፍ ቃል',
+    },
     
-    // Navigation
-    'nav.home': 'መነሻ',
-    'nav.courses': 'ኮርሶች',
-    'nav.profile': 'መገለጫ',
-    'nav.dashboard': 'ዳሽቦርድ',
+    courses: {
+      myCourses: 'የእኔ ኮርሶች',
+      allCourses: 'ሁሉም ኮርሶች',
+      title: 'ኮርሶች',
+      all: 'ሁሉም ኮርሶች',
+      my: 'የእኔ ኮርሶች',
+      enroll: 'ተመዝገብ',
+      continue: 'መማር ይቀጥሉ',
+      review: 'ገምግም',
+      completed: 'ተጠናቋል',
+      inProgress: 'በሂደት ላይ',
+      notStarted: 'አልተጀመረም',
+      markAsCompleted: 'እንደተጠናቀቀ ምልክት አድርግ',
+      markAsIncomplete: 'እንዳልተጠናቀቀ ምልክት አድርግ',
+      lessons: 'ትምህርቶች',
+      quizzes: 'ፈተናዎች',
+      progress: 'እድገት',
+      hours: 'ሰዓታት',
+      difficulty: 'የሚጠብቀው ጊዜ',
+      beginner: 'ጀማሪ',
+      intermediate: 'መካከለኛ',
+      advanced: 'የላቀ',
+      expert: 'ባለሙያ',
+      take: 'ፈተና ይውሰዱ',
+      notFound: 'ኮርሱ አልተገኘም',
+    },
     
-    // Courses
-    'courses.title': 'ኮርሶች',
-    'courses.all': 'ሁሉም ኮርሶች',
-    'courses.my': 'የእኔ ኮርሶች',
-    'courses.enroll': 'ተመዝገብ',
-    'courses.continue': 'መማር ይቀጥሉ',
-    'courses.review': 'ገምግም',
-    'courses.completed': 'ተጠናቋል',
-    'courses.inProgress': 'በሂደት ላይ',
-    'courses.notStarted': 'አልተጀመረም',
-    'courses.markAsCompleted': 'እንደተጠናቀቀ ምልክት አድርግ',
-    'courses.markAsIncomplete': 'እንዳልተጠናቀቀ ምልክት አድርግ',
-    'courses.lessons': 'ትምህርቶች',
-    'courses.quizzes': 'ፈተናዎች',
-    'courses.progress': 'እድገት',
-    'courses.hours': 'ሰዓታት',
-    'courses.difficulty': 'የሚጠብቀው ጊዜ',
-    'courses.beginner': 'ጀማሪ',
-    'courses.intermediate': 'መካከለኛ',
-    'courses.advanced': 'የላቀ',
-    'courses.expert': 'ባለሙያ',
-    'courses.take': 'ፈተና ይውሰዱ',
-    'courses.notFound': 'ኮርሱ አልተገኘም',
-    'courses.notFoundDescription': 'እየፈለጉት ያለው ኮርስ የለም ወይም ለመድረስ ፈቃድ የለዎትም',
-    'courses.backToCourses': 'ወደ ኮርሶች ተመለስ',
-    'courses.noLessons': 'ምንም ትምህርቶች የሉም',
-    'courses.noLessonsDescription': 'ይህ ኮርስ እስካሁን ምንም ትምህርቶች የሉትም',
-    'courses.noQuizzes': 'ምንም ፈተናዎች የሉም',
-    'courses.noQuizzesDescription': 'ይህ ኮርስ እስካሁን ምንም ፈተናዎች የሉትም',
+    dashboard: {
+      welcomeBack: 'እንኳን ደህና መጡ',
+      continueLesson: 'ትምህርቱን ይቀጥሉ',
+      recentActivity: 'የቅርብ ጊዜ እንቅስቃሴዎች',
+      upcomingCourses: 'የሚመጡ ኮርሶች',
+      completedCourses: 'የተጠናቀቁ ኮርሶች',
+      achievementEarned: 'ያገኙት ውጤት',
+      progressSummary: 'የእድገት ማጠቃለያ',
+      todayPlan: 'የዛሬ እቅድ',
+      announcements: 'ማስታወቂያዎች',
+      suggestedCourses: 'የተጠቆሙ ኮርሶች',
+    },
     
-    // Quiz-related
-    'quiz.start': 'ፈተና ጀምር',
-    'quiz.submit': 'ፈተና አስገባ',
-    'quiz.passed': 'ፈተና አልፏል',
-    'quiz.failed': 'ፈተና አልተሳካም',
-    'quiz.tryAgain': 'እንደገና ሞክር',
-    'quiz.review': 'ፈተና ገምግም',
-    'quiz.question': 'ጥያቄ',
+    progress: {
+      trackProgress: "ሂደትዎን ይከታተሉ",
+      trackProgressDesc: "ለዚህ ትምህርት ሂደትዎን ያዘምኑ",
+      currentProgress: "የአሁኑ ሂደት",
+      updateProgress: "ሂደት ያዘምኑ",
+      saveProgress: "ሂደት ያስቀምጡ",
+      markComplete: "እንደተጠናቀቀ ምልክት ያድርጉ",
+      markIncomplete: "እንዳልተጠናቀቀ ምልክት ያድርጉ",
+      progressUpdated: "ሂደት ተዘምኗል",
+      progressUpdatedDesc: "ሂደትዎ ወደ {progress}% ተዘምኗል",
+      lessonCompleted: "ትምህርት ተጠናቋል",
+      lessonCompletedDesc: "ይህን ትምህርት በማጠናቀቅዎ እንኳን ደስ አለዎት!",
+      error: "ስህተት",
+      errorUpdating: "ሂደትዎን ማዘመን አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
+    },
     
-    // Errors
-    'error.failedToLoad': 'ውሂብ መጫን አልተቻለም',
-    'error.failedToUpdate': 'ማዘመን አልተቻለም',
-    'error.loginRequired': 'መግባት አለብህ',
-    'error.failedToStart': 'ኮርሱን መጀመር ወይም መቀጠል አልተቻለም',
-    
-    // Success messages
-    'success.lessonCompleted': 'ትምህርቱ እንደተጠናቀቀ ተመልክቷል',
-    'success.courseCompleted': 'እንኳን ደስ አለህ! ይህንን ኮርስ አጠናቀሃል!',
-    'success.progressUpdated': 'እድገትህ ተዘምኗል',
+    app: {
+      title: 'የኩሪፍቱ መማሪያ መንደር',
+      loading: 'በመጫን ላይ...',
+      error: 'ስህተት',
+      success: 'ተሳክቷል',
+      save: 'አስቀምጥ',
+      cancel: 'ሰርዝ',
+      delete: 'አጥፋ',
+      edit: 'አርትዕ',
+      back: 'ተመለስ',
+      next: 'ቀጣይ',
+      previous: 'ቀዳሚ',
+      submit: 'አስገባ',
+    },
   },
   
   or: {
-    // General
-    'app.title': 'Kuriftu Ganda Barnoota',
-    'app.loading': 'Fe\'aa jira...',
-    'app.error': 'Dogoggora',
-    'app.success': 'Milkaa\'e',
-    'app.save': 'Olkaa\'i',
-    'app.cancel': 'Haqi',
-    'app.delete': 'Balleessi',
-    'app.edit': 'Gulaali',
-    'app.back': 'Duubatti',
-    'app.next': 'Itti Aanee',
-    'app.previous': 'Kan Duraa',
-    'app.submit': 'Galchi',
+    common: {
+      welcome: 'Mana Barnootaatti Baga Nagaan Dhuftan',
+      loading: 'Fe\'aa jira...',
+      error: 'Dogoggora uumameera',
+      submit: 'Galchi',
+      cancel: 'Haqi',
+      save: 'Ol-kaa\'i',
+      delete: 'Haqi',
+      edit: 'Gulaali',
+      view: 'Ilaali',
+      search: 'Barbaadi',
+      filter: 'Calleessi',
+      sort: 'Tarreessi',
+      notFound: 'Hin argamne',
+      accessDenied: 'Daawwachuuf Mirga Hin qabdu',
+      success: 'Milkaa\'e',
+      failure: 'Hin milkoofne',
+      created: 'Uumameera',
+      updated: 'Haaromfameera',
+      deleted: 'Haqameera',
+    },
     
-    // Auth
-    'auth.login': 'Seeni',
-    'auth.logout': 'Ba\'i',
-    'auth.register': 'Galmaa\'i',
-    'auth.email': 'Email',
-    'auth.password': 'Jecha Iccitii',
+    auth: {
+      signIn: 'Seeni',
+      signUp: 'Of Galmaa\'i',
+      signOut: 'Ba\'i',
+      forgotPassword: 'Jecha Iccitii Irraanfatte?',
+      resetPassword: 'Jecha Iccitii Haaromsi',
+      emailPlaceholder: 'Imeelii kee galchi',
+      passwordPlaceholder: 'Jecha iccitii kee galchi',
+      confirmPassword: 'Jecha Iccitii Mirkaneessi',
+      fullName: 'Maqaa Guutuu',
+      phone: 'Lakkoofsa Bilbilaa',
+      role: 'Gahee',
+      department: 'Damee',
+      position: 'Iddoo',
+      experience: 'Sadarkaa Muuxannoo',
+      verifyEmail: 'Imeelii Mirkaneessi',
+      verifyCode: 'Koodii Mirkaneessaa',
+      newAccount: 'Herrega Haaraa Uumi',
+      hasAccount: 'Duraan herrega qabda?',
+      signInWithEmail: 'Imeeliidhaan Seeni',
+      signInWithGoogle: 'Google\'iin Seeni',
+      login: 'Seeni',
+      logout: 'Ba\'i',
+      register: 'Galmaa\'i',
+      email: 'Email',
+      password: 'Jecha Iccitii',
+    },
     
-    // Navigation
-    'nav.home': 'Mana',
-    'nav.courses': 'Koorsiiwwan',
-    'nav.profile': 'Profaayilii',
-    'nav.dashboard': 'Daashboordii',
+    courses: {
+      title: 'Koorsiiwwan',
+      all: 'Koorsiiwwan Hunda',
+      my: 'Koorsiiwwan Koo',
+      enroll: 'Galmaa\'i',
+      continue: 'Barachuun Itti fufi',
+      review: 'Irra Deebii',
+      completed: 'Xumurame',
+      inProgress: 'Adeemsarra',
+      notStarted: 'Hin Jalqabamne',
+      markAsCompleted: 'Akka Xumuramaatti Mallatteessi',
+      markAsIncomplete: 'Akka Hin Xumuramin Mallatteessi',
+      lessons: 'Barnoota',
+      quizzes: 'Qormaata',
+      progress: 'Fooyya\'iinsa',
+      hours: 'sa\'aatii',
+      difficulty: 'Yeroo Tilmaamame',
+      beginner: 'Jalqabaa',
+      intermediate: 'Giddugaleessa',
+      advanced: 'Guddate',
+      expert: 'Ogaa',
+    },
     
-    // Courses
-    'courses.title': 'Koorsiiwwan',
-    'courses.all': 'Koorsiiwwan Hunda',
-    'courses.my': 'Koorsiiwwan Koo',
-    'courses.enroll': 'Galmaa\'i',
-    'courses.continue': 'Barachuun Itti fufi',
-    'courses.review': 'Irra Deebii',
-    'courses.completed': 'Xumurame',
-    'courses.inProgress': 'Adeemsarra',
-    'courses.notStarted': 'Hin Jalqabamne',
-    'courses.markAsCompleted': 'Akka Xumuramaatti Mallatteessi',
-    'courses.markAsIncomplete': 'Akka Hin Xumuramin Mallatteessi',
-    'courses.lessons': 'Barnoota',
-    'courses.quizzes': 'Qormaata',
-    'courses.progress': 'Fooyya\'iinsa',
-    'courses.hours': 'sa\'aatii',
-    'courses.difficulty': 'Yeroo Tilmaamame',
-    'courses.beginner': 'Jalqabaa',
-    'courses.intermediate': 'Giddugaleessa',
-    'courses.advanced': 'Guddate',
-    'courses.expert': 'Ogaa',
-    'courses.take': 'Qormaata fudhachuu',
-    'courses.notFound': 'Koorsiin hin argamne',
-    'courses.notFoundDescription': 'Koorsiin ati barbaaddu hin jiru yookiin gahaa hin qabdu',
-    'courses.backToCourses': 'Gara Koorsiiwwan deebi\'i',
-    'courses.noLessons': 'Barnooti hin jiru',
-    'courses.noLessonsDescription': 'Koorsiin kun ammatti barnoota hin qabu',
-    'courses.noQuizzes': 'Qormaanni hin jiru',
-    'courses.noQuizzesDescription': 'Koorsiin kun ammatti qormaata hin qabu',
+    dashboard: {
+      welcomeBack: 'Baga Deebitee',
+      continueLesson: 'Barnoota Itti Fufi',
+      recentActivity: 'Hojii Dhiyoo',
+      upcomingCourses: 'Koorsiiwwan Dhufuu',
+      completedCourses: 'Koorsiiwwan Xumuramanii',
+      achievementEarned: 'Galata Argatte',
+      progressSummary: 'Cuunfaa Fooya\'ina',
+      todayPlan: 'Karoora Har\'aa',
+      announcements: 'Beeksisawwan',
+      suggestedCourses: 'Koorsiiwwan Eeraman',
+    },
     
-    // Quiz-related
-    'quiz.start': 'Qormaata Jalqabi',
-    'quiz.submit': 'Qormaata Galchi',
-    'quiz.passed': 'Qormaata Darbe',
-    'quiz.failed': 'Qormaata Hin Darbin',
-    'quiz.tryAgain': 'Ammas Yaali',
-    'quiz.review': 'Qormaata Ilaalii',
-    'quiz.question': 'Gaaffii',
+    progress: {
+      trackProgress: "Tarkaanfii Keessan Hordofaa",
+      trackProgressDesc: "Tarkaanfii barnoota kanaaf jiru haaromsi",
+      currentProgress: "Tarkaanfii Ammaa",
+      updateProgress: "Tarkaanfii Haaromsi",
+      saveProgress: "Tarkaanfii Olkaa'i",
+      markComplete: "Akka Xumurame Mallatteessi",
+      markIncomplete: "Akka Hinxummuramin Mallatteessi",
+      progressUpdated: "Tarkaanfiin Haaromfameera",
+      progressUpdatedDesc: "Tarkaanfiin kee {progress}% haaromfameera",
+      lessonCompleted: "Barnoonni Xumuramee jira",
+      lessonCompletedDesc: "Barnoota kana xumuruuf baga gammadde!",
+      error: "Dogoggora",
+      errorUpdating: "Tarkaanfii keessan haaromsuu hin dandeenye. Maaloo irra deebi'uun yaalaa."
+    },
     
-    // Errors
-    'error.failedToLoad': 'Ragaa baasuu hin dandeenye',
-    'error.failedToUpdate': 'Haaromsuun hin danda\'amne',
-    'error.loginRequired': 'Seenuu qabda',
-    'error.failedToStart': 'Koorsii jalqabuu ykn itti fufuu hin danda\'amne',
-    
-    // Success messages
-    'success.lessonCompleted': 'Barnoonni xumuramee mallatteeffame',
-    'success.courseCompleted': 'Baga gammadde! Koorsii kana xumuratee!',
-    'success.progressUpdated': 'Fooyya\'iinsi haaromfameera',
+    app: {
+      title: 'Kuriftu Ganda Barnoota',
+      loading: 'Fe\'aa jira...',
+      error: 'Dogoggora',
+      success: 'Milkaa\'e',
+      save: 'Olkaa\'i',
+      cancel: 'Haqi',
+      delete: 'Balleessi',
+      edit: 'Gulaali',
+      back: 'Duubatti',
+      next: 'Itti Aanee',
+      previous: 'Kan Duraa',
+      submit: 'Galchi',
+    },
   }
 };
 
 // Language provider component
 export const LanguageProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  // Get saved language preference or default to 'en'
   const [language, setLanguage] = useState<Language>(() => {
     const saved = localStorage.getItem('language') as Language;
-    return saved || 'en';
+    return (saved && (saved === 'en' || saved === 'am' || saved === 'or')) ? saved : 'en';
   });
   
-  // Update localStorage when language changes
   useEffect(() => {
     localStorage.setItem('language', language);
   }, [language]);
   
-  // Translation function
-  const t = (key: string): string => {
-    return translations[language][key] || translations['en'][key] || key;
+  const t = (key: string, args?: Record<string, any>): string => {
+    const keys = key.split('.');
+    try {
+      let value: any = translations[language];
+      
+      // Navigate through the nested object
+      for (const k of keys) {
+        if (!value || typeof value !== 'object') return key;
+        value = value[k];
+      }
+      
+      if (typeof value !== 'string') return key;
+      
+      // Replace placeholders
+      if (args) {
+        return Object.keys(args).reduce((str, argKey) => {
+          return str.replace(`{${argKey}}`, String(args[argKey]));
+        }, value);
+      }
+      
+      return value;
+    } catch (e) {
+      // Fallback to English
+      try {
+        let value: any = translations.en;
+        for (const k of keys) {
+          if (!value || typeof value !== 'object') return key;
+          value = value[k];
+        }
+        return typeof value === 'string' ? value : key;
+      } catch {
+        return key;
+      }
+    }
   };
   
   return (
@@ -289,7 +565,7 @@ export const LanguageProvider: React.FC<{children: React.ReactNode}> = ({ childr
   );
 };
 
-// Custom hook for using the language context
+// Custom hook to use the language context
 export const useLanguage = () => useContext(LanguageContext);
 
 export default LanguageContext; 
