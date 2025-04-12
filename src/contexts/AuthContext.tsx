@@ -26,6 +26,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -85,16 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('Fetched user profile:', data);
       setProfile(data as UserProfile);
-      
-      // If we're not at the onboarding page and onboarding is not completed,
-      // navigate to onboarding
-      if (data && !data.onboarding_completed && window.location.pathname !== '/onboarding') {
-        console.log('Redirecting to onboarding from context');
-        navigate('/onboarding');
-      }
     } catch (err) {
       console.error('Unexpected error fetching profile:', err);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const refreshProfile = async () => {
+    if (!user) return;
+    await fetchUserProfile(user.id);
   };
 
   const signIn = async (email: string, password: string) => {
@@ -184,7 +185,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       signIn,
       signUp,
-      signOut 
+      signOut,
+      refreshProfile
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,7 +40,6 @@ export default function ProtectedRoute({
 
   // If a user hasn't completed onboarding and is not already on the onboarding route
   if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
-    console.log('Redirecting to onboarding, current path:', location.pathname);
     return <Navigate to="/onboarding" replace />;
   }
 
