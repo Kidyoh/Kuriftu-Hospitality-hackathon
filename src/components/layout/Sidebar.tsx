@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -43,7 +42,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const location = useLocation();
-  const { profile, hasRole } = useAuth();
+  const { profile, hasRole, user } = useAuth();
   const path = location.pathname;
   
   // Helper to check if a path is active, supporting both exact matches and partial matches for nested routes
@@ -52,8 +51,15 @@ export function Sidebar({ className }: SidebarProps) {
     return currentPath === targetPath || (currentPath.startsWith(targetPath) && targetPath !== '/');
   };
   
-  // If profile is not loaded yet, show a limited sidebar
-  if (!profile) {
+  // Define role-based flags
+  const isAdmin = hasRole(['admin']);
+  const isManager = hasRole(['admin', 'manager']);
+  const isStaff = hasRole(['staff']);
+  const isTrainee = hasRole(['trainee']);
+  const isNormalUser = isStaff || isTrainee;
+
+  // If user is authenticated but profile is not loaded yet, show basic navigation
+  if (user && !profile) {
     return (
       <div className={cn("pb-12 w-64 border-r", className)}>
         <div className="space-y-4 py-4">
@@ -65,8 +71,26 @@ export function Sidebar({ className }: SidebarProps) {
               <SidebarItem 
                 icon={Home} 
                 label="Dashboard" 
-                href="/" 
-                active={path === '/'} 
+                href="/dashboard" 
+                active={path === '/dashboard'} 
+              />
+              <SidebarItem 
+                icon={BookOpen} 
+                label="Courses" 
+                href="/courses" 
+                active={isActive(path, '/courses', false) && !path.startsWith('/admin')} 
+              />
+              <SidebarItem 
+                icon={GraduationCap} 
+                label="My Learning" 
+                href="/my-learning" 
+                active={isActive(path, '/my-learning', false)} 
+              />
+              <SidebarItem 
+                icon={BarChart2} 
+                label="My Progress" 
+                href="/progress" 
+                active={isActive(path, '/progress', true)} 
               />
               <SidebarItem 
                 icon={User} 
@@ -87,13 +111,43 @@ export function Sidebar({ className }: SidebarProps) {
     );
   }
   
+  // If no user is authenticated, show a limited sidebar
+  if (!user) {
+    return (
+      <div className={cn("pb-12 w-64 border-r", className)}>
+        <div className="space-y-4 py-4">
+          <div className="px-4 py-2">
+            <h2 className="mb-2 px-2 text-xl font-semibold tracking-tight text-kuriftu-brown">
+              Learning Village
+            </h2>
+            <div className="space-y-1">
+              <SidebarItem 
+                icon={Home} 
+                label="Home" 
+                href="/" 
+                active={path === '/'} 
+              />
+              <SidebarItem 
+                icon={User} 
+                label="Login" 
+                href="/auth" 
+                active={path === '/auth'} 
+              />
+              <SidebarItem 
+                icon={HelpCircle} 
+                label="Help & Support" 
+                href="/support" 
+                active={path === '/support'} 
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   // Check for admin path to show admin sidebar
   const isAdminPath = path.startsWith('/admin');
-  
-  // Check for roles using the hasRole function
-  const isAdmin = hasRole(['admin']);
-  const isManager = hasRole(['admin', 'manager']);
-  const isStaff = hasRole(['admin', 'manager', 'staff']);
   
   // For admin routes, show a specific admin sidebar
   if (isAdminPath) {
@@ -156,7 +210,7 @@ export function Sidebar({ className }: SidebarProps) {
     );
   }
   
-  // For regular routes, show the appropriate sidebar based on user role
+  // For regular routes, show role-based navigation
   return (
     <div className={cn("pb-12 w-64 border-r", className)}>
       <div className="space-y-4 py-4">
@@ -164,34 +218,99 @@ export function Sidebar({ className }: SidebarProps) {
           <h2 className="mb-2 px-2 text-xl font-semibold tracking-tight text-kuriftu-brown">
             Learning Village
           </h2>
-          <div className="space-y-1">
-            <SidebarItem 
-              icon={Home} 
-              label="Dashboard" 
-              href="/dashboard" 
-              active={path === '/dashboard' || path === '/'} 
-            />
-            <SidebarItem 
-              icon={BookOpen} 
-              label="Courses" 
-              href="/courses" 
-              active={isActive(path, '/courses', false) && !path.startsWith('/admin')} 
-            />
-            <SidebarItem 
-              icon={GraduationCap} 
-              label="My Learning" 
-              href="/my-learning" 
-              active={isActive(path, '/my-learning', false)} 
-            />
-            <SidebarItem 
-              icon={BarChart2} 
-              label="My Progress" 
-              href="/progress" 
-              active={isActive(path, '/progress', true)} 
-            />
-          </div>
+          
+          {/* Only show learner dashboard to normal users */}
+          {isNormalUser && (
+            <div className="space-y-1">
+              <SidebarItem 
+                icon={Home} 
+                label="Dashboard" 
+                href="/dashboard" 
+                active={path === '/dashboard' || path === '/'} 
+              />
+              <SidebarItem 
+                icon={BookOpen} 
+                label="Courses" 
+                href="/courses" 
+                active={isActive(path, '/courses', false) && !path.startsWith('/admin')} 
+              />
+              <SidebarItem 
+                icon={GraduationCap} 
+                label="My Learning" 
+                href="/my-learning" 
+                active={isActive(path, '/my-learning', false)} 
+              />
+              <SidebarItem 
+                icon={BarChart2} 
+                label="My Progress" 
+                href="/progress" 
+                active={isActive(path, '/progress', true)} 
+              />
+            </div>
+          )}
+          
+          {/* Show manager-specific navigation */}
+          {isManager && !isAdmin && (
+            <div className="space-y-1">
+              <SidebarItem 
+                icon={Home} 
+                label="Manager Dashboard" 
+                href="/dashboard" 
+                active={path === '/dashboard' || path === '/'} 
+              />
+              <SidebarItem 
+                icon={Users} 
+                label="Team Members" 
+                href="/team" 
+                active={isActive(path, '/team', true)} 
+              />
+              <SidebarItem 
+                icon={LineChart} 
+                label="Analytics" 
+                href="/analytics" 
+                active={isActive(path, '/analytics', true)} 
+              />
+              <SidebarItem 
+                icon={CalendarDays} 
+                label="Schedule" 
+                href="/schedule" 
+                active={isActive(path, '/schedule', true)} 
+              />
+            </div>
+          )}
+          
+          {/* Show admin-specific navigation when on regular pages */}
+          {isAdmin && (
+            <div className="space-y-1">
+              <SidebarItem 
+                icon={ShieldAlert} 
+                label="Admin Dashboard" 
+                href="/admin" 
+                active={false} 
+              />
+              <SidebarItem 
+                icon={Users} 
+                label="User Management" 
+                href="/admin/users" 
+                active={false} 
+              />
+              <SidebarItem 
+                icon={BookOpen} 
+                label="Course Management" 
+                href="/admin/courses" 
+                active={false} 
+              />
+              <SidebarItem 
+                icon={LineChart} 
+                label="Analytics" 
+                href="/admin/analytics" 
+                active={false} 
+              />
+            </div>
+          )}
         </div>
         
+        {/* Staff-specific section */}
         {isStaff && (
           <div className="px-4 py-2">
             <h2 className="mb-2 px-2 text-lg font-semibold tracking-tight text-kuriftu-brown">
@@ -220,57 +339,11 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
         )}
         
-        {isManager && (
-          <div className="px-4 py-2">
-            <h2 className="mb-2 px-2 text-lg font-semibold tracking-tight text-kuriftu-brown">
-              Management
-            </h2>
-            <div className="space-y-1">
-              <SidebarItem 
-                icon={Users} 
-                label="Team Members" 
-                href="/team" 
-                active={isActive(path, '/team', true)} 
-              />
-              <SidebarItem 
-                icon={LineChart} 
-                label="Analytics" 
-                href="/analytics" 
-                active={isActive(path, '/analytics', true)} 
-              />
-              {isAdmin && (
-                <SidebarItem 
-                  icon={ShieldAlert} 
-                  label="Admin Console" 
-                  href="/admin" 
-                  active={false} 
-                />
-              )}
-            </div>
-          </div>
-        )}
-        
+        {/* Common settings section for all users */}
         <div className="px-4 py-2">
           <h2 className="mb-2 px-2 text-lg font-semibold tracking-tight text-kuriftu-brown">
-            Community
+            Account
           </h2>
-          <div className="space-y-1">
-            <SidebarItem 
-              icon={Trophy} 
-              label="Achievements" 
-              href="/achievements" 
-              active={isActive(path, '/achievements', true)} 
-            />
-            <SidebarItem 
-              icon={FileText} 
-              label="Resources" 
-              href="/resources" 
-              active={isActive(path, '/resources', true)} 
-            />
-          </div>
-        </div>
-        
-        <div className="px-4 py-2">
           <div className="space-y-1">
             <SidebarItem 
               icon={User} 

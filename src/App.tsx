@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
@@ -91,6 +94,54 @@ const App = () => (
                 <Route path="/courses/:courseId/quizzes/:quizId" element={
                   <Layout>
                     <TakeQuiz />
+                  </Layout>
+                } />
+                
+                {/* Progress route */}
+                <Route path="/progress" element={
+                  <Layout>
+                    <div className="container py-6">
+                      <h1 className="text-2xl font-bold mb-4">My Progress</h1>
+                      <p className="text-muted-foreground mb-6">Track your learning achievements and progress.</p>
+                      
+                      {/* This is a placeholder. In a real implementation, you would add a proper Progress component here */}
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Course Completion</CardTitle>
+                            <CardDescription>Your overall course completion rate</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-4">
+                              <div className="flex justify-between">
+                                <span>Overall Progress</span>
+                                <span>68%</span>
+                              </div>
+                              <Progress value={68} />
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Quiz Performance</CardTitle>
+                            <CardDescription>Your quiz scores and achievements</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span>Average Score</span>
+                                <Badge>85%</Badge>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span>Quizzes Passed</span>
+                                <Badge variant="outline">12 / 15</Badge>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
                   </Layout>
                 } />
                 
