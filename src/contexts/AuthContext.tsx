@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,8 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Log the attempt to load profile
       console.log(`Attempting to load profile for user: ${userId}`);
 
-      // Try a direct query with service role if available
-      // Otherwise fall back to standard client query
+      // Try to fetch profile with direct query
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -97,8 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Error fetching user profile:', error);
-        
-        // For profile not found or other errors, try to create a default profile
+        // For profile not found or other errors, create a default profile
         await createProfileDirectly(userId);
         return;
       }
@@ -113,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     } catch (err) {
       console.error('Unexpected error fetching profile:', err);
+      await createFallbackProfile(userId);
       setIsLoading(false);
     }
   };
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const createProfileDirectly = async (userId: string) => {
     try {
       if (!user) {
-        setIsLoading(false);
+        createFallbackProfile(userId);
         return;
       }
       
@@ -144,49 +144,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data, error } = await supabase
           .from('profiles')
           .upsert(profileData)
-          .select('*')
-          .maybeSingle();
+          .select();
         
         if (error) {
           console.error('Error in profile fallback method:', error);
-          
           // If we still can't create a profile, create a temporary local one
-          // This ensures the app won't crash even when DB operations fail
-          setProfile({
-            ...profileData,
-            department: null,
-            position: null,
-            avatar_url: null,
-            phone: null,
-            experience_level: null,
-          });
-          
-          setIsLoading(false);
+          createFallbackProfile(userId);
           return;
         }
         
-        if (data) {
-          console.log('Profile created successfully:', data);
-          setProfile(data as UserProfile);
+        if (data && data.length > 0) {
+          console.log('Profile created successfully:', data[0]);
+          setProfile(data[0] as UserProfile);
+          setIsLoading(false);
+        } else {
+          console.log('No profile data returned after upsert');
+          createFallbackProfile(userId);
         }
       } catch (innerErr) {
         console.error('Inner try-catch for profile creation caught error:', innerErr);
         // Create an in-memory profile as last resort
-        setProfile({
-          ...profileData,
-          department: null,
-          position: null,
-          avatar_url: null,
-          phone: null,
-          experience_level: null,
-        });
+        createFallbackProfile(userId);
       }
-      
-      setIsLoading(false);
     } catch (err) {
       console.error('Unexpected error creating profile:', err);
-      setIsLoading(false);
+      createFallbackProfile(userId);
     }
+  };
+  
+  // Create a fallback profile in memory when database operations fail
+  const createFallbackProfile = (userId: string) => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+    
+    const metadata = user.user_metadata || {};
+    const tempProfile: UserProfile = {
+      id: userId,
+      first_name: metadata.first_name || '',
+      last_name: metadata.last_name || '',
+      role: 'trainee',
+      department: null,
+      position: null,
+      avatar_url: null,
+      phone: null,
+      experience_level: null,
+      onboarding_completed: false,
+      joined_at: new Date().toISOString(),
+    };
+    
+    console.log('Created temporary in-memory profile:', tempProfile);
+    setProfile(tempProfile);
+    setIsLoading(false);
+    
+    // Show a warning to the user
+    toast({
+      variant: "warning",
+      title: "Limited functionality mode",
+      description: "We're having trouble connecting to the database. Some features may be limited.",
+    });
   };
 
   const hasRole = (roles: Array<'admin' | 'manager' | 'staff' | 'trainee'>): boolean => {

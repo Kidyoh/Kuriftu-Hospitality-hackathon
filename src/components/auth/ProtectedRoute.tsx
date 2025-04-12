@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -47,37 +49,36 @@ export default function ProtectedRoute({
     return <>{children ? children : <Outlet />}</>;
   }
 
+  // For profile page, always allow access
+  if (location.pathname === '/profile') {
+    return <>{children ? children : <Outlet />}</>;
+  }
+
   // If profile is not loaded, show limited access message with retry option
   if (!profile) {
-    console.log("Profile not loaded, allowing access but with limited functionality");
+    console.log("Profile not loaded, showing retry option");
     
-    // For profile page, allow access even without profile data
-    if (location.pathname === '/profile') {
-      return <>{children ? children : <Outlet />}</>;
-    }
-    
-    // For other pages, show profile loading state with retry button
     return (
       <div className="flex h-screen flex-col items-center justify-center p-4">
         <Loader2 className="h-8 w-8 animate-spin text-kuriftu-green mb-4" />
         <h2 className="text-xl font-bold mb-2">Loading Profile Data</h2>
         <p className="text-center text-muted-foreground mb-4">
-          Your profile data is still loading. Some features may be limited until your profile loads.
+          We're having trouble loading your profile data. Please try again or go to onboarding.
         </p>
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={() => refreshProfile()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             Retry Loading Profile
-          </button>
+          </Button>
           
-          <button
+          <Button
             onClick={() => window.location.href = "/onboarding"}
             className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
           >
             Go to Onboarding
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -98,7 +99,6 @@ export default function ProtectedRoute({
   }
 
   // If a user hasn't completed onboarding and requireOnboarding is true, redirect to onboarding
-  // But don't do this for the profile and auth pages (they're always accessible)
   if (requireOnboarding && !profile.onboarding_completed && 
       location.pathname !== '/profile' && location.pathname !== '/auth') {
     console.log("User hasn't completed onboarding, redirecting to /onboarding");
