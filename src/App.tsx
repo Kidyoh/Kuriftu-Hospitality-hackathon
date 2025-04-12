@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,7 +19,10 @@ import LearningPath from "./pages/LearningPath";
 import Courses from "./pages/Courses";
 import AdminCourseManagement from "./pages/AdminCourseManagement";
 import AdminLearningPaths from "./pages/AdminLearningPaths";
-import AdminCourseLessons from "./pages/AdminCourseLessons";
+import AdminQuizzes from "./pages/AdminQuizzes";
+import AdminQuizQuestions from "./pages/AdminQuizQuestions";
+import CourseLessons from "./pages/CourseLessons";
+import TakeQuiz from "./pages/TakeQuiz";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,42 +45,195 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             
-            {/* Default route redirect */}
-            <Route path="/index" element={<Navigate to="/dashboard" replace />} />
-            
-            {/* Protected routes with standard access */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
+            {/* Protected routes with Layout */}
+            <Route element={<ProtectedRoute />}>
+              {/* Main dashboard */}
+              <Route path="/dashboard" element={
                 <Layout>
                   <Dashboard />
                 </Layout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/profile" element={
-              <ProtectedRoute>
+              } />
+              
+              <Route path="/profile" element={
                 <Layout>
                   <Profile />
                 </Layout>
-              </ProtectedRoute>
-            } />
-            
-            {/* Learning paths and courses */}
-            <Route path="/my-learning" element={
-              <ProtectedRoute>
+              } />
+              
+              {/* Learning routes */}
+              <Route path="/my-learning" element={
                 <Layout>
                   <LearningPath />
                 </Layout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/courses" element={
-              <ProtectedRoute>
+              } />
+              
+              <Route path="/courses" element={
                 <Layout>
                   <Courses />
                 </Layout>
-              </ProtectedRoute>
-            } />
+              } />
+              
+              <Route path="/courses/:courseId/lessons" element={
+                <Layout>
+                  <CourseLessons />
+                </Layout>
+              } />
+              
+              <Route path="/courses/:courseId/quizzes/:quizId" element={
+                <Layout>
+                  <TakeQuiz />
+                </Layout>
+              } />
+              
+              {/* Staff routes */}
+              <Route path="/schedule" element={
+                <Layout requiredRoles={['admin', 'manager', 'staff']}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Staff Schedule</h1>
+                    <p>This page is for scheduling staff shifts and activities.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              <Route path="/chat" element={
+                <Layout requiredRoles={['admin', 'manager', 'staff']}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Team Chat</h1>
+                    <p>Team communication platform.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              <Route path="/break-room" element={
+                <Layout requiredRoles={['admin', 'manager', 'staff']}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Break Room</h1>
+                    <p>Relax and socialize with your team.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              {/* Management routes */}
+              <Route path="/team" element={
+                <Layout requiredRoles={['admin', 'manager']}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Team Management</h1>
+                    <p>Manage your team members and performance.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              <Route path="/analytics" element={
+                <Layout requiredRoles={['admin', 'manager']}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Analytics Dashboard</h1>
+                    <p>View business and learning analytics.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              {/* Admin routes - All using the same layout with consistent sidebar */}
+              <Route path="/admin" element={
+                <Layout requiredRoles={['admin']}>
+                  <AdminDashboard />
+                </Layout>
+              } />
+              
+              <Route path="/admin/courses" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <AdminCourseManagement />
+                </Layout>
+              } />
+              
+              <Route path="/admin/courses/:courseId/lessons" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <CourseLessons />
+                </Layout>
+              } />
+              
+              <Route path="/admin/courses/:courseId/quizzes" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <AdminQuizzes />
+                </Layout>
+              } />
+              
+              <Route path="/admin/courses/:courseId/quizzes/:quizId/questions" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <AdminQuizQuestions />
+                </Layout>
+              } />
+              
+              <Route path="/admin/learning-paths" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <AdminLearningPaths />
+                </Layout>
+              } />
+              
+              {/* Admin routes for user management and analytics (to be implemented) */}
+              <Route path="/admin/users" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">User Management</h1>
+                    <p>Manage users and permissions.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              <Route path="/admin/analytics" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Admin Analytics</h1>
+                    <p>View detailed analytics and reports.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              <Route path="/admin/settings" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">System Settings</h1>
+                    <p>Configure system-wide settings.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              {/* Community pages */}
+              <Route path="/achievements" element={
+                <Layout>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Achievements</h1>
+                    <p>View your learning achievements and badges.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              <Route path="/resources" element={
+                <Layout>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Resources</h1>
+                    <p>Access learning resources and materials.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              <Route path="/settings" element={
+                <Layout>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Settings</h1>
+                    <p>Manage your account settings and preferences.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              <Route path="/support" element={
+                <Layout>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Help & Support</h1>
+                    <p>Get help with using the learning platform.</p>
+                  </div>
+                </Layout>
+              } />
+            </Route>
             
             {/* Onboarding - protected but doesn't require completed onboarding */}
             <Route path="/onboarding" element={
@@ -85,76 +242,8 @@ const App = () => (
               </ProtectedRoute>
             } />
             
-            {/* Admin routes - strictly enforced for admin role only */}
-            <Route path="/admin" element={
-              <ProtectedRoute requiredRoles={['admin']}>
-                <Layout requiredRoles={['admin']}>
-                  <AdminDashboard />
-                </Layout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/admin/courses" element={
-              <ProtectedRoute requiredRoles={['admin']}>
-                <Layout requiredRoles={['admin']}>
-                  <AdminCourseManagement />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/admin/courses/:courseId/lessons" element={
-              <ProtectedRoute requiredRoles={['admin']}>
-                <Layout requiredRoles={['admin']}>
-                  <AdminCourseLessons />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/admin/learning-paths" element={
-              <ProtectedRoute requiredRoles={['admin']}>
-                <Layout requiredRoles={['admin']}>
-                  <AdminLearningPaths />
-                </Layout>
-              </ProtectedRoute>
-            } />
-            
-            {/* Consolidated admin routes */}
-            <Route path="/admin/users" element={
-              <ProtectedRoute requiredRoles={['admin']}>
-                <Navigate to="/admin?tab=users" replace />
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/admin/settings" element={
-              <ProtectedRoute requiredRoles={['admin']}>
-                <Navigate to="/admin?tab=settings" replace />
-              </ProtectedRoute>
-            } />
-            
-            {/* Management routes - for managers and admins */}
-            <Route path="/team" element={
-              <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                <Layout requiredRoles={['admin', 'manager']}>
-                  <div className="container py-6">
-                    <h1 className="text-2xl font-bold mb-4">Team Management</h1>
-                    <p>This page is restricted to managers and admins.</p>
-                  </div>
-                </Layout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/analytics" element={
-              <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                <Layout requiredRoles={['admin', 'manager']}>
-                  <div className="container py-6">
-                    <h1 className="text-2xl font-bold mb-4">Analytics Dashboard</h1>
-                    <p>This page is restricted to managers and admins.</p>
-                  </div>
-                </Layout>
-              </ProtectedRoute>
-            } />
-            
-            {/* Fallback route */}
+            {/* Fallback routes */}
+            <Route path="/index" element={<Navigate to="/dashboard" />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

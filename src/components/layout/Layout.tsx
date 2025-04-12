@@ -3,15 +3,21 @@ import React from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
   requiredRoles?: Array<'admin' | 'manager' | 'staff' | 'trainee'>;
+  showSidebar?: boolean;
 }
 
-export function Layout({ children, requiredRoles = [] }: LayoutProps) {
-  const { profile, isLoading } = useAuth();
+export function Layout({ 
+  children, 
+  requiredRoles = [],
+  showSidebar = true 
+}: LayoutProps) {
+  const { profile, isLoading, hasRole } = useAuth();
+  const location = useLocation();
   
   // Show loading state while checking authentication
   if (isLoading) {
@@ -24,7 +30,7 @@ export function Layout({ children, requiredRoles = [] }: LayoutProps) {
   }
 
   // Check if user has required role access
-  if (profile && requiredRoles.length > 0 && !requiredRoles.includes(profile.role)) {
+  if (profile && requiredRoles.length > 0 && !requiredRoles.some(role => hasRole([role]))) {
     // Redirect unauthorized users to the dashboard
     return <Navigate to="/" replace />;
   }
@@ -45,12 +51,21 @@ export function Layout({ children, requiredRoles = [] }: LayoutProps) {
     }
   };
 
+  // Check if current path is admin path
+  const isAdminPath = location.pathname.startsWith('/admin');
+  
+  // For admin pages with nested routes (like /admin/courses), hide the sidebar
+  const showAdminSidebar = isAdminPath && location.pathname === '/admin';
+  
+  // Determine if we should show the sidebar based on both props and current path
+  const showSidebarFinal = showSidebar && (showAdminSidebar || !isAdminPath);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <div className="flex-1 flex">
-        <Sidebar />
-        <main className={`flex-1 ${getBgColor()}`}>
+        {showSidebarFinal && <Sidebar />}
+        <main className={`flex-1 ${getBgColor()} overflow-auto p-4`}>
           {children}
         </main>
       </div>
