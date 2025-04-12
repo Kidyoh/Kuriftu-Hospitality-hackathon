@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -42,16 +41,23 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             
-            {/* Protected routes with role-based access */}
+            {/* Default route redirect */}
+            <Route path="/index" element={<Navigate to="/dashboard" replace />} />
+            
+            {/* Protected routes with standard access */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Dashboard />
+                <Layout>
+                  <Dashboard />
+                </Layout>
               </ProtectedRoute>
             } />
             
             <Route path="/profile" element={
               <ProtectedRoute>
-                <Profile />
+                <Layout>
+                  <Profile />
+                </Layout>
               </ProtectedRoute>
             } />
             
@@ -112,7 +118,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             
-            {/* Fix duplicate routes with different components by consolidating them */}
+            {/* Consolidated admin routes */}
             <Route path="/admin/users" element={
               <ProtectedRoute requiredRoles={['admin']}>
                 <Navigate to="/admin?tab=users" replace />
@@ -148,8 +154,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             
-            {/* Fallback routes */}
-            <Route path="/index" element={<Navigate to="/dashboard" />} />
+            {/* Fallback route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

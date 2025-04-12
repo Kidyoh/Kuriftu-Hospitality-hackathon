@@ -1,15 +1,17 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-interface WelcomeCardProps {
-  name?: string;
-  role?: string;
-}
-
-export function WelcomeCard({ name = "Team Member", role = "Hotel Staff" }: WelcomeCardProps) {
+export function WelcomeCard() {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+  
+  const name = profile ? `${profile.first_name} ${profile.last_name}` : "Team Member";
+  const role = profile ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : "Staff Member";
+  
   const timeOfDay = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Morning";
@@ -33,11 +35,11 @@ export function WelcomeCard({ name = "Team Member", role = "Hotel Staff" }: Welc
             Continue your learning journey and build excellence in hospitality.
           </p>
           <div className="flex space-x-2">
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={() => navigate('/my-learning')}>
               <PlayCircle className="h-4 w-4" />
               Continue Learning
             </Button>
-            <Button variant="outline">View Path</Button>
+            <Button variant="outline" onClick={() => navigate('/courses')}>View Courses</Button>
           </div>
         </div>
       </CardContent>

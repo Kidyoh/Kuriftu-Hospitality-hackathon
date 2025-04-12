@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,8 +16,10 @@ export default function ProtectedRoute({
   requiredRoles = [],
   requireOnboarding = true
 }: ProtectedRouteProps) {
-  const { user, profile, isLoading, refreshProfile } = useAuth();
+  const { user, profile, isLoading, refreshProfile, hasRole } = useAuth();
   const location = useLocation();
+
+  console.log("ProtectedRoute - Path:", location.pathname, "User:", !!user, "Profile:", !!profile);
 
   // While we're loading auth state, show a nice loading indicator
   if (isLoading) {
@@ -86,7 +87,8 @@ export default function ProtectedRoute({
 
   // If this route has role requirements, check them
   if (requiredRoles.length > 0) {
-    if (!requiredRoles.includes(profile.role)) {
+    // Use the hasRole function from AuthContext
+    if (!hasRole(requiredRoles)) {
       console.log(`User role ${profile.role} doesn't match required roles [${requiredRoles.join(', ')}]`);
       toast({
         variant: "destructive",
