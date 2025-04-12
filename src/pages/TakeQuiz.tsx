@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -403,15 +402,18 @@ export default function TakeQuiz() {
         })
         .eq('id', attemptId);
         
-      setQuizResult({
+      const quizResults: QuizResult = {
         totalPoints,
         earnedPoints,
         percentage,
         passed,
         questionResults
-      });
+      };
       
+      setQuizResult(quizResults);
       setQuizSubmitted(true);
+      
+      updateCourseProgress(passed);
       
     } catch (error) {
       console.error('Error submitting quiz:', error);
@@ -439,6 +441,84 @@ export default function TakeQuiz() {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+  
+  const updateCourseProgress = async (quizPassed: boolean) => {
+    if (!profile || !courseId) return;
+    
+    try {
+      // If quiz was passed, mark it in user_quiz_results
+      if (quizPassed && quizResult) {
+        await supabase.from('user_quiz_results').upsert({
+          user_id: profile.id,
+          quiz_id: quizId,
+          score: quizResult.percentage,
+          passed: true,
+          completed_at: new Date().toISOString()
+        });
+      }
+      
+      // Get all completed quizzes for this course
+      const { data: userQuizzesData } = await supabase
+        .from('user_quiz_results')
+        .select('quiz_id')
+        .eq('user_id', profile.id)
+        .eq('passed', true);
+        
+      // Get all quizzes for this course
+      const { data: courseQuizzes } = await supabase
+        .from('quizzes')
+        .select('id')
+        .eq('course_id', courseId);
+        
+      // Get all lessons for this course
+      const { data: courseLessons } = await supabase
+        .from('course_lessons')
+        .select('id')
+        .eq('course_id', courseId);
+        
+      // Get all completed lessons for this course
+      const { data: userLessonsData } = await supabase
+        .from('user_lessons')
+        .select('lesson_id')
+        .eq('user_id', profile.id)
+        .eq('completed', true);
+        
+      // Calculate progress based on completed items
+      const totalItems = (courseQuizzes?.length || 0) + (courseLessons?.length || 0);
+      const completedQuizzes = userQuizzesData?.filter(uq => 
+        courseQuizzes?.some(cq => cq.id === uq.quiz_id)
+      ) || [];
+      const completedLessons = userLessonsData?.filter(ul => 
+        courseLessons?.some(cl => cl.id === ul.lesson_id)
+      ) || [];
+      
+      const completedItems = completedQuizzes.length + completedLessons.length;
+      const progress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+      
+      // Update user_courses table
+      const { error } = await supabase
+        .from('user_courses')
+        .upsert({
+          user_id: profile.id,
+          course_id: courseId,
+          progress: progress,
+          completed: progress === 100,
+          last_accessed: new Date().toISOString()
+        });
+        
+      if (error) throw error;
+      
+      if (progress === 100) {
+        toast({
+          title: "Course Completed!",
+          description: "Congratulations! You've completed this course.",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating course progress:', error);
+    }
   };
   
   if (isLoading) {

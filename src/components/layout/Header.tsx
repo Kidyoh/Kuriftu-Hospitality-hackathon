@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Menu, Search, UserCircle, Settings, LogOut, ShieldAlert } from 'lucide-react';
@@ -7,6 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from './Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageSwitcher from '@/components/language/LanguageSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,9 +27,13 @@ interface HeaderProps {
   title?: string;
 }
 
-export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
+export function Header({ title }: HeaderProps) {
   const { user, profile, signOut, hasRole } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
+  
+  // Default title using translation
+  const defaultTitle = t('app.title');
   
   const getInitials = () => {
     if (!profile) return '';
@@ -61,7 +66,7 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
         <div className="mr-4 hidden md:flex">
           <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
             <span className="font-bold text-xl text-primary">
-              {title}
+              {title || defaultTitle}
             </span>
           </Link>
         </div>
@@ -84,6 +89,9 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
         
         {user ? (
           <div className="flex items-center gap-2">
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+            
             {/* Role badge */}
             {profile && (
               <Badge 
@@ -111,7 +119,7 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
                 className="mr-2 hidden sm:flex items-center gap-1 border-kuriftu-brown text-kuriftu-brown hover:bg-kuriftu-brown/10"
               >
                 <ShieldAlert className="h-4 w-4" />
-                Admin Dashboard
+                {t('nav.dashboard')}
               </Button>
             )}
             
@@ -142,7 +150,7 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>
-                  {profile ? `${profile.first_name} ${profile.last_name}` : 'My Account'}
+                  {profile ? `${profile.first_name} ${profile.last_name}` : t('auth.account')}
                   {profile && (
                     <span className="block text-xs text-muted-foreground capitalize">{profile.role}</span>
                   )}
@@ -151,11 +159,11 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
                     <UserCircle className="h-4 w-4 mr-2" />
-                    Profile
+                    {t('nav.profile')}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer">
                     <Settings className="h-4 w-4 mr-2" />
-                    Settings
+                    {t('app.settings')}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 
@@ -165,21 +173,21 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>
                         <ShieldAlert className="h-4 w-4 mr-2" />
-                        Admin Access
+                        {t('nav.admin')}
                       </DropdownMenuSubTrigger>
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent>
                           <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
-                            Admin Dashboard
+                            {t('nav.dashboard')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate('/admin?tab=users')} className="cursor-pointer">
-                            Manage Users
+                            {t('nav.users')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate('/admin?tab=paths')} className="cursor-pointer">
-                            Learning Paths
+                            {t('nav.learning')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate('/admin?tab=settings')} className="cursor-pointer">
-                            System Settings
+                            {t('app.settings')}
                           </DropdownMenuItem>
                         </DropdownMenuSubContent>
                       </DropdownMenuPortal>
@@ -190,18 +198,19 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
                   <LogOut className="h-4 w-4 mr-2" />
-                  Log out
+                  {t('auth.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         ) : (
           <div className="flex gap-2">
+            <LanguageSwitcher />
             <Link to="/auth">
-              <Button variant="outline">Sign In</Button>
+              <Button variant="outline">{t('auth.login')}</Button>
             </Link>
             <Link to="/auth?tab=signup">
-              <Button>Sign Up</Button>
+              <Button>{t('auth.register')}</Button>
             </Link>
           </div>
         )}

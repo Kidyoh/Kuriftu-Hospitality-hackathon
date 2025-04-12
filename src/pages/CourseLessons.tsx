@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { 
   ChevronLeft, Check, BookOpen, Video, Clock, 
-  ChevronRight, Play, Globe
+  ChevronRight, Play, Globe, CheckCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Lesson {
   id: string;
@@ -152,12 +153,42 @@ export default function CourseLessons() {
     fetchData();
   }, [courseId, profile]);
   
-  const updateProgress = async (lessonIndex: number) => {
+  const updateProgress = async (lessonIndex: number, markCurrentAsCompleted = false) => {
     if (!profile || !courseId || !lessons.length) return;
     
-    const progress = Math.round((lessonIndex + 1) / lessons.length * 100);
+    // Mark the current lesson as completed if requested
+    if (markCurrentAsCompleted && selectedLesson) {
+      try {
+        await supabase.from('user_lessons').upsert({
+          user_id: profile.id,
+          lesson_id: selectedLesson.id,
+          completed: true,
+          completed_at: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Error marking lesson as completed:', error);
+      }
+    }
     
+    // Get all completed lessons for this course
     try {
+      const { data: completedLessonsData } = await supabase
+        .from('user_lessons')
+        .select('lesson_id')
+        .eq('user_id', profile.id)
+        .eq('completed', true);
+        
+      const completedLessonIds = completedLessonsData?.map(item => item.lesson_id) || [];
+      
+      // Filter to only include lessons from this course
+      const completedLessonsInThisCourse = lessons.filter(lesson => 
+        completedLessonIds.includes(lesson.id)
+      );
+      
+      // Calculate progress based on completed lessons
+      const completedCount = completedLessonsInThisCourse.length;
+      const progress = Math.round((completedCount / lessons.length) * 100);
+      
       const { error } = await supabase
         .from('user_courses')
         .upsert({
@@ -248,6 +279,26 @@ export default function CourseLessons() {
     if (lesson.content_or) languages.push('or');
     
     return languages;
+  };
+  
+  // Add a new function to mark the current lesson as completed
+  const markCurrentLessonCompleted = async () => {
+    if (!selectedLesson) return;
+    
+    const currentIndex = lessons.findIndex(l => l.id === selectedLesson.id);
+    if (currentIndex === -1) return;
+    
+    await updateProgress(currentIndex, true);
+    
+    toast({
+      title: "Lesson Completed",
+      description: "Your progress has been updated",
+    });
+    
+    // If there's a next lesson, navigate to it
+    if (currentIndex < lessons.length - 1) {
+      setSelectedLesson(lessons[currentIndex + 1]);
+    }
   };
   
   return (
@@ -367,20 +418,30 @@ export default function CourseLessons() {
                       </div>
                     )}
                   </CardContent>
-                  <CardFooter className="flex justify-between">
+                  <CardFooter className="flex items-center justify-between mt-8 mb-4">
                     <Button 
-                      variant="outline" 
-                      onClick={() => handleNavigateLesson('prev')}
-                      disabled={lessons.indexOf(selectedLesson) === 0}
+                      onClick={markCurrentLessonCompleted}
+                      className="bg-green-500 hover:bg-green-600 text-white"
                     >
-                      <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Mark as Completed
                     </Button>
-                    <Button 
-                      onClick={() => handleNavigateLesson('next')}
-                      disabled={lessons.indexOf(selectedLesson) === lessons.length - 1}
-                    >
-                      Next <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleNavigateLesson('prev')}
+                        disabled={lessons.findIndex(l => l.id === selectedLesson?.id) === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                      </Button>
+                      <Button
+                        onClick={() => handleNavigateLesson('next')}
+                        disabled={lessons.findIndex(l => l.id === selectedLesson?.id) === lessons.length - 1}
+                      >
+                        Next <ChevronRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
                   </CardFooter>
                 </Card>
               ) : (

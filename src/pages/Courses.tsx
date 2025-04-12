@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -149,6 +148,69 @@ export default function Courses() {
     }
   };
   
+  const CourseCard = ({ course, isEnrolled, getDifficultyColor, navigate, enrollInCourse, myCourses }) => (
+    <Card className="overflow-hidden">
+      <CardHeader>
+        <div className="flex justify-between">
+          <CardTitle className="line-clamp-2">{course.title}</CardTitle>
+          {course.difficulty_level && (
+            <Badge variant="outline" className={getDifficultyColor(course.difficulty_level)}>
+              {course.difficulty_level}
+            </Badge>
+          )}
+        </div>
+        <CardDescription className="line-clamp-2">{course.description}</CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 mr-1" />
+            <span>{course.estimated_hours || 'Unknown'} hours</span>
+          </div>
+          
+          {course.category && (
+            <Badge variant="secondary" className="ml-2">
+              {course.category}
+            </Badge>
+          )}
+        </div>
+        
+        {course.related_skill && (
+          <div className="mt-2 text-xs text-muted-foreground">
+            Related skill: {course.related_skill}
+          </div>
+        )}
+        
+        {isEnrolled(course.id) && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium">Progress</span>
+              <span className="text-xs">{myCourses.find(c => c.id === course.id)?.progress || 0}%</span>
+            </div>
+            <Progress 
+              value={myCourses.find(c => c.id === course.id)?.progress || 0} 
+              className="h-2"
+            />
+          </div>
+        )}
+      </CardContent>
+      
+      <CardFooter>
+        <Button 
+          className="w-full" 
+          variant={isEnrolled(course.id) ? "secondary" : "default"}
+          onClick={() => isEnrolled(course.id) ? 
+            navigate(`/courses/${course.id}`) : 
+            enrollInCourse(course.id)
+          }
+        >
+          {isEnrolled(course.id) ? "Continue Course" : "Enroll Now"}
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+  
   return (
     <div className="container py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -182,66 +244,15 @@ export default function Courses() {
           ) : filteredAllCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredAllCourses.map(course => (
-                <Card key={course.id} className="overflow-hidden">
-                  <CardHeader>
-                    <div className="flex justify-between">
-                      <CardTitle className="line-clamp-2">{course.title}</CardTitle>
-                      {course.difficulty_level && (
-                        <Badge variant="outline" className={getDifficultyColor(course.difficulty_level)}>
-                          {course.difficulty_level}
-                        </Badge>
-                      )}
-                    </div>
-                    <CardDescription className="line-clamp-2">{course.description}</CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4 mr-1" />
-                        <span>{course.estimated_hours || 'Unknown'} hours</span>
-                      </div>
-                      
-                      {course.category && (
-                        <Badge variant="secondary" className="ml-2">
-                          {course.category}
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    {course.related_skill && (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        Related skill: {course.related_skill}
-                      </div>
-                    )}
-                    
-                    {isEnrolled(course.id) && (
-                      <div className="mt-4">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium">Progress</span>
-                          <span className="text-xs">{myCourses.find(c => c.id === course.id)?.progress || 0}%</span>
-                        </div>
-                        <Progress 
-                          value={myCourses.find(c => c.id === course.id)?.progress || 0} 
-                          className="h-2"
-                        />
-                      </div>
-                    )}
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button 
-                      className="w-full" 
-                      variant={isEnrolled(course.id) ? "secondary" : "default"}
-                      onClick={() => isEnrolled(course.id) ? 
-                        navigate(`/courses/${course.id}`) : 
-                        enrollInCourse(course.id)
-                      }
-                    >
-                      {isEnrolled(course.id) ? "Continue Course" : "Enroll Now"}
-                    </Button>
-                  </CardFooter>
-                </Card>
+                <CourseCard 
+                  key={course.id} 
+                  course={course} 
+                  isEnrolled={isEnrolled} 
+                  getDifficultyColor={getDifficultyColor} 
+                  navigate={navigate} 
+                  enrollInCourse={enrollInCourse} 
+                  myCourses={myCourses} 
+                />
               ))}
             </div>
           ) : (
@@ -261,50 +272,15 @@ export default function Courses() {
           ) : filteredMyCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredMyCourses.map(course => (
-                <Card key={course.id} className="overflow-hidden">
-                  <CardHeader>
-                    <div className="flex justify-between">
-                      <CardTitle className="line-clamp-2">{course.title}</CardTitle>
-                      {course.difficulty_level && (
-                        <Badge variant="outline" className={getDifficultyColor(course.difficulty_level)}>
-                          {course.difficulty_level}
-                        </Badge>
-                      )}
-                    </div>
-                    <CardDescription className="line-clamp-2">{course.description}</CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="flex items-center text-sm text-muted-foreground mb-4">
-                      <Clock className="h-4 w-4 mr-1" />
-                      <span>{course.estimated_hours || 'Unknown'} hours</span>
-                      
-                      {course.category && (
-                        <Badge variant="secondary" className="ml-2">
-                          {course.category}
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium">Progress</span>
-                        <span className="text-xs">{course.progress || 0}%</span>
-                      </div>
-                      <Progress value={course.progress || 0} className="h-2" />
-                    </div>
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button 
-                      className="w-full" 
-                      variant={course.completed ? "outline" : "default"}
-                      onClick={() => navigate(`/courses/${course.id}`)}
-                    >
-                      {course.completed ? "Review Course" : "Continue Learning"}
-                    </Button>
-                  </CardFooter>
-                </Card>
+                <CourseCard 
+                  key={course.id} 
+                  course={course} 
+                  isEnrolled={isEnrolled} 
+                  getDifficultyColor={getDifficultyColor} 
+                  navigate={navigate} 
+                  enrollInCourse={enrollInCourse} 
+                  myCourses={myCourses} 
+                />
               ))}
             </div>
           ) : (
