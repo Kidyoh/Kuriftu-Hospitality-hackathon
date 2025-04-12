@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Menu, Search, UserCircle, Settings, LogOut } from 'lucide-react';
+import { Bell, Menu, Search, UserCircle, Settings, LogOut, ShieldAlert } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -15,14 +15,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "../ui/badge";
 
 interface HeaderProps {
   title?: string;
 }
 
 export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, hasRole } = useAuth();
   const navigate = useNavigate();
   
   const getInitials = () => {
@@ -30,8 +35,25 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
     return `${profile.first_name.charAt(0)}${profile.last_name.charAt(0)}`.toUpperCase();
   };
 
-  const isAdmin = profile?.role === 'admin';
-  const isManager = profile?.role === 'manager' || isAdmin;
+  // Use the new hasRole function from AuthContext
+  const isAdmin = profile && hasRole(['admin']);
+  const isManager = profile && hasRole(['admin', 'manager']);
+
+  // Role-specific color for the avatar border
+  const getAvatarBorderClass = () => {
+    if (!profile) return "";
+    
+    switch(profile.role) {
+      case 'admin':
+        return "ring-2 ring-kuriftu-brown";
+      case 'manager':
+        return "ring-2 ring-kuriftu-green";
+      case 'staff':
+        return "ring-2 ring-kuriftu-orange";
+      default:
+        return "ring-2 ring-kuriftu-cream";
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
@@ -62,9 +84,33 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
         
         {user ? (
           <div className="flex items-center gap-2">
+            {/* Role badge */}
+            {profile && (
+              <Badge 
+                variant="outline" 
+                className={`hidden sm:inline-flex capitalize ${
+                  profile.role === 'admin' 
+                    ? 'bg-kuriftu-brown text-white' 
+                    : profile.role === 'manager'
+                    ? 'bg-kuriftu-green text-white'
+                    : profile.role === 'staff'
+                    ? 'bg-kuriftu-orange text-white'
+                    : 'bg-kuriftu-cream text-kuriftu-brown'
+                }`}
+              >
+                {profile.role}
+              </Badge>
+            )}
+            
             {/* Admin quick access */}
             {isAdmin && (
-              <Button variant="outline" size="sm" onClick={() => navigate('/admin')} className="mr-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/admin')} 
+                className="mr-2 hidden sm:flex items-center gap-1 border-kuriftu-brown text-kuriftu-brown hover:bg-kuriftu-brown/10"
+              >
+                <ShieldAlert className="h-4 w-4" />
                 Admin Dashboard
               </Button>
             )}
@@ -81,14 +127,25 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer">
+                <Avatar className={`cursor-pointer ${getAvatarBorderClass()}`}>
                   <AvatarImage src={profile?.avatar_url || ''} />
-                  <AvatarFallback>{getInitials()}</AvatarFallback>
+                  <AvatarFallback className={
+                    profile?.role === 'admin' 
+                      ? 'bg-kuriftu-brown/20' 
+                      : profile?.role === 'manager'
+                      ? 'bg-kuriftu-green/20'
+                      : profile?.role === 'staff'
+                      ? 'bg-kuriftu-orange/20'
+                      : 'bg-kuriftu-cream/50'
+                  }>{getInitials()}</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>
                   {profile ? `${profile.first_name} ${profile.last_name}` : 'My Account'}
+                  {profile && (
+                    <span className="block text-xs text-muted-foreground capitalize">{profile.role}</span>
+                  )}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
@@ -101,6 +158,35 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
                     Settings
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
+                
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <ShieldAlert className="h-4 w-4 mr-2" />
+                        Admin Access
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
+                            Admin Dashboard
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/admin?tab=users')} className="cursor-pointer">
+                            Manage Users
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/admin?tab=paths')} className="cursor-pointer">
+                            Learning Paths
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate('/admin?tab=settings')} className="cursor-pointer">
+                            System Settings
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenuSub>
+                  </>
+                )}
+                
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
                   <LogOut className="h-4 w-4 mr-2" />

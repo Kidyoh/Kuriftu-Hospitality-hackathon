@@ -23,8 +23,8 @@ export default function ProtectedRoute({
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-kuriftu-brown" />
+        <span className="ml-2 text-lg">Loading authentication...</span>
       </div>
     );
   }
@@ -35,12 +35,14 @@ export default function ProtectedRoute({
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
-  // Skip role and onboarding checks if profile is not loaded due to potential recursion error
+  // If profile is not loaded, show loading state
   if (!profile) {
-    console.log("Profile not loaded, allowing access but with limited functionality");
-    // We'll still render the component/outlet without the profile
-    // This prevents us from getting stuck in a redirect loop
-    return <>{children ? children : <Outlet />}</>;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-kuriftu-green" />
+        <span className="ml-2 text-lg">Loading profile data...</span>
+      </div>
+    );
   }
 
   // If this route has role requirements, check them

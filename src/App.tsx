@@ -14,6 +14,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard";
+import { Layout } from "./components/layout/Layout";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,16 +37,20 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             
-            {/* Protected routes - dashboard redirects to /dashboard */}
+            {/* Protected routes with role-based access */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Dashboard />
+                <Layout>
+                  <Dashboard />
+                </Layout>
               </ProtectedRoute>
             } />
             
             <Route path="/profile" element={
               <ProtectedRoute>
-                <Profile />
+                <Layout>
+                  <Profile />
+                </Layout>
               </ProtectedRoute>
             } />
             
@@ -59,19 +64,24 @@ const App = () => (
             {/* Admin routes - strictly enforced for admin role only */}
             <Route path="/admin" element={
               <ProtectedRoute requiredRoles={['admin']}>
-                <AdminDashboard />
+                <Layout requiredRoles={['admin']}>
+                  <AdminDashboard />
+                </Layout>
               </ProtectedRoute>
             } />
+            
             <Route path="/admin/users" element={
               <ProtectedRoute requiredRoles={['admin']}>
                 <Navigate to="/admin?tab=users" replace />
               </ProtectedRoute>
             } />
+            
             <Route path="/admin/learning-paths" element={
               <ProtectedRoute requiredRoles={['admin']}>
                 <Navigate to="/admin?tab=paths" replace />
               </ProtectedRoute>
             } />
+            
             <Route path="/admin/settings" element={
               <ProtectedRoute requiredRoles={['admin']}>
                 <Navigate to="/admin?tab=settings" replace />
@@ -81,12 +91,23 @@ const App = () => (
             {/* Management routes - for managers and admins */}
             <Route path="/team" element={
               <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                <div>Team Management Page</div>
+                <Layout requiredRoles={['admin', 'manager']}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Team Management</h1>
+                    <p>This page is restricted to managers and admins.</p>
+                  </div>
+                </Layout>
               </ProtectedRoute>
             } />
+            
             <Route path="/analytics" element={
               <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                <div>Analytics Page</div>
+                <Layout requiredRoles={['admin', 'manager']}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Analytics Dashboard</h1>
+                    <p>This page is restricted to managers and admins.</p>
+                  </div>
+                </Layout>
               </ProtectedRoute>
             } />
             

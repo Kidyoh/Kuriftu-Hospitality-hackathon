@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +28,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  hasRole: (roles: Array<'admin' | 'manager' | 'staff' | 'trainee'>) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,15 +41,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Set up auth state listener FIRST to prevent recursion issues
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log('Auth state changed:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
+        // Use setTimeout to prevent potential recursion
         if (currentSession?.user) {
-          setTimeout(async () => {
-            await fetchUserProfile(currentSession.user.id);
+          setTimeout(() => {
+            fetchUserProfile(currentSession.user.id);
           }, 0);
         } else {
           setProfile(null);
@@ -55,14 +59,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        await fetchUserProfile(currentSession.user.id);
+        fetchUserProfile(currentSession.user.id);
+      } else {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -78,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        setIsLoading(false);
         return;
       }
 
@@ -90,14 +97,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const hasRole = (roles: Array<'admin' | 'manager' | 'staff' | 'trainee'>): boolean => {
+    if (!profile) return false;
+    return roles.includes(profile.role);
+  };
+
   const refreshProfile = async () => {
     if (!user) return;
+    setIsLoading(true);
     await fetchUserProfile(user.id);
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      setIsLoading(true);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
+      
       if (error) {
         toast({
           variant: "destructive",
@@ -118,11 +133,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: err.message || "An unexpected error occurred",
       });
       return { error: err };
+    } finally {
+      // Don't set isLoading to false here as the onAuthStateChange will handle that
     }
   };
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
+      setIsLoading(true);
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -154,12 +172,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: err.message || "An unexpected error occurred",
       });
       return { error: err };
+    } finally {
+      // Don't set isLoading to false here as the onAuthStateChange will handle that
     }
   };
 
   const signOut = async () => {
     try {
+      setIsLoading(true);
       await supabase.auth.signOut();
+      setProfile(null);
       navigate('/auth');
       toast({
         title: "Logged out",
@@ -171,6 +193,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Logout failed",
         description: err.message || "An unexpected error occurred",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -183,7 +207,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
-      refreshProfile
+      refreshProfile,
+      hasRole
     }}>
       {children}
     </AuthContext.Provider>
