@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,7 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener FIRST to prevent recursion issues
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log('Auth state changed:', event);
@@ -50,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
-          // Use setTimeout to prevent potential recursion
           setTimeout(() => {
             fetchUserProfile(currentSession.user.id);
           }, 0);
@@ -62,7 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
@@ -79,25 +75,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Set loading state
       setIsLoading(true);
       
-      // Log the attempt to load profile
       console.log(`Attempting to load profile for user: ${userId}`);
 
-      // Try to fetch profile with direct query
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      // Always mark that we've attempted to load the profile
       setProfileLoadAttempted(true);
 
       if (error) {
         console.error('Error fetching user profile:', error);
-        // For profile not found or other errors, create a default profile
         await createProfileDirectly(userId);
         return;
       }
@@ -117,7 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Direct approach for profile creation - simpler and less prone to errors
   const createProfileDirectly = async (userId: string) => {
     try {
       if (!user) {
@@ -127,7 +117,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const metadata = user.user_metadata || {};
       
-      // Create a minimal profile with only required fields
       const profileData = {
         id: userId,
         first_name: metadata.first_name || '',
@@ -140,7 +129,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Creating default profile with data:", profileData);
       
       try {
-        // Try a direct insert with upsert
         const { data, error } = await supabase
           .from('profiles')
           .upsert(profileData)
@@ -148,7 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (error) {
           console.error('Error in profile fallback method:', error);
-          // If we still can't create a profile, create a temporary local one
           createFallbackProfile(userId);
           return;
         }
@@ -163,7 +150,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (innerErr) {
         console.error('Inner try-catch for profile creation caught error:', innerErr);
-        // Create an in-memory profile as last resort
         createFallbackProfile(userId);
       }
     } catch (err) {
@@ -171,8 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       createFallbackProfile(userId);
     }
   };
-  
-  // Create a fallback profile in memory when database operations fail
+
   const createFallbackProfile = (userId: string) => {
     if (!user) {
       setIsLoading(false);
@@ -198,9 +183,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(tempProfile);
     setIsLoading(false);
     
-    // Show a warning to the user
     toast({
-      variant: "warning",
+      variant: "default",
       title: "Limited functionality mode",
       description: "We're having trouble connecting to the database. Some features may be limited.",
     });
@@ -243,7 +227,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return { error: err };
     } finally {
-      // Don't set isLoading to false here as the onAuthStateChange will handle that
     }
   };
 
@@ -282,7 +265,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return { error: err };
     } finally {
-      // Don't set isLoading to false here as the onAuthStateChange will handle that
     }
   };
 
