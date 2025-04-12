@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [profileAttempts, setProfileAttempts] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,6 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      // Increase profile fetch attempts
+      setProfileAttempts(prev => prev + 1);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -88,28 +92,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If profile doesn't exist, create it
         if (error.code === 'PGRST116') {
           await createInitialProfile(userId);
+        } else if (profileAttempts < 3) {
+          // Try again with a delay if we've had less than 3 attempts
+          setTimeout(() => fetchUserProfile(userId), 1000);
         } else {
           setIsLoading(false);
+          toast({
+            variant: "destructive",
+            title: "Error loading profile",
+            description: "Please try refreshing the page or contact support.",
+          });
         }
         return;
       }
 
       console.log('Fetched user profile:', data);
       setProfile(data as UserProfile);
+      setProfileAttempts(0); // Reset attempts on success
       setIsLoading(false);
     } catch (err) {
       console.error('Unexpected error fetching profile:', err);
       setIsLoading(false);
+      if (profileAttempts < 3) {
+        // Try again with a delay if we've had less than 3 attempts
+        setTimeout(() => fetchUserProfile(userId), 1000);
+      }
     }
   };
 
   const createInitialProfile = async (userId: string) => {
     try {
-      // Get user metadata from auth
-      const { data: { user } } = await supabase.auth.admin.getUserById(userId);
+      // Try to get user metadata directly from the session
+      const metadata = user?.user_metadata;
       
-      const firstName = user?.user_metadata?.first_name || '';
-      const lastName = user?.user_metadata?.last_name || '';
+      const firstName = metadata?.first_name || '';
+      const lastName = metadata?.last_name || '';
       
       const { data, error } = await supabase
         .from('profiles')
@@ -125,6 +142,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         console.error('Error creating initial profile:', error);
+        toast({
+          variant: "destructive",
+          title: "Error creating profile",
+          description: "Please try refreshing the page or contact support.",
+        });
       } else {
         console.log('Initial profile created:', data);
         setProfile(data as UserProfile);
@@ -144,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     if (!user) return;
     setIsLoading(true);
+    setProfileAttempts(0); // Reset attempts counter
     await fetchUserProfile(user.id);
   };
 

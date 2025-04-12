@@ -16,7 +16,7 @@ export default function ProtectedRoute({
   requiredRoles = [],
   requireOnboarding = true
 }: ProtectedRouteProps) {
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, isLoading, refreshProfile } = useAuth();
   const location = useLocation();
 
   // While we're loading auth state, show a nice loading indicator
@@ -35,12 +35,43 @@ export default function ProtectedRoute({
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
-  // If profile is not loaded, show loading state
+  // If profile is not loaded, show limited functionality message but continue
   if (!profile) {
+    console.log("Profile not loaded, allowing access but with limited functionality");
+    
+    // Auto-refresh profile after a delay (only once)
+    React.useEffect(() => {
+      const timer = setTimeout(() => {
+        refreshProfile();
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }, []);
+    
+    // Allow access to onboarding even without profile
+    if (location.pathname === '/onboarding') {
+      return <>{children ? children : <Outlet />}</>;
+    }
+    
+    // For profile page, allow access so user can potentially fix their profile
+    if (location.pathname === '/profile') {
+      return <>{children ? children : <Outlet />}</>;
+    }
+    
+    // For other pages, show profile loading state
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-kuriftu-green" />
-        <span className="ml-2 text-lg">Loading profile data...</span>
+      <div className="flex h-screen flex-col items-center justify-center p-4">
+        <Loader2 className="h-8 w-8 animate-spin text-kuriftu-green mb-4" />
+        <h2 className="text-xl font-bold mb-2">Loading Profile Data</h2>
+        <p className="text-center text-muted-foreground mb-4">
+          Your profile data is still loading. Some features may be limited until your profile loads.
+        </p>
+        <button
+          onClick={() => refreshProfile()}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Retry Loading Profile
+        </button>
       </div>
     );
   }
