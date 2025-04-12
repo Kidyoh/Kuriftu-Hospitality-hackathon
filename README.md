@@ -78,17 +78,6 @@ npm install
 ```bash
 npm run dev
 ```
-
-### 4. Environment Variables
-
-Create a `.env` file and set your credentials:
-
-```env
-VITE_SUPABASE_URL=your-supabase-url
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-OPENAI_API_KEY=your-openai-api-key
-```
-
 ---
 
 ## 🧪 Development Status
@@ -97,9 +86,9 @@ OPENAI_API_KEY=your-openai-api-key
 |-----------------------------|--------------|
 | User Onboarding             | ✅ Complete  |
 | Course Video Management     | ✅ Complete  |
-| AI Quiz Generation          | ➶ In Progress |
-| Admin Review Workflow       | ➶ In Progress |
-| Multilingual UI             | ➶ In Progress |
+| AI Quiz Generation          | ✅ Complete  |
+| Admin Review Workflow       | ✅ Complete |
+| Multilingual UI             | ✅ Complete |
 | Analytics Dashboard         | ➶ In Progress |
 
 ---
