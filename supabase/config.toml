@@ -1,1 +1,5 @@
+
 project_id = "kcfsqlbixvxotjtddhhl"
+
+[functions.ai-recommendations]
+verify_jwt = true

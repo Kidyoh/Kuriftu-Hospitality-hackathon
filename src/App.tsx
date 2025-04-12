@@ -12,7 +12,14 @@ import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -30,6 +37,18 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/onboarding" element={<Onboarding />} />
               {/* Add more protected routes here */}
+            </Route>
+            
+            {/* Role-based routes */}
+            <Route element={<ProtectedRoute requiredRoles={['admin', 'manager']} />}>
+              {/* Admin and manager only routes go here */}
+              <Route path="/admin/users" element={<Dashboard />} />
+              <Route path="/admin/learning-paths" element={<Dashboard />} />
+            </Route>
+            
+            <Route element={<ProtectedRoute requiredRoles={['admin']} />}>
+              {/* Admin only routes go here */}
+              <Route path="/admin/settings" element={<Dashboard />} />
             </Route>
             
             {/* Fallback route */}

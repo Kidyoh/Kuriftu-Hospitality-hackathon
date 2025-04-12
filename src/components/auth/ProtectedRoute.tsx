@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
@@ -12,6 +13,7 @@ export default function ProtectedRoute({
   requiredRoles = []
 }: ProtectedRouteProps) {
   const { user, profile, isLoading } = useAuth();
+  const location = useLocation();
 
   // While we're loading auth state, show nothing
   if (isLoading) {
@@ -20,7 +22,7 @@ export default function ProtectedRoute({
   
   // If not logged in, redirect to auth page
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
   // If this route has role requirements, check them
@@ -33,7 +35,7 @@ export default function ProtectedRoute({
 
   // If a user hasn't completed onboarding and is not on the onboarding route
   // and the current path is not already the onboarding path, redirect to onboarding
-  if (profile && !profile.onboarding_completed && window.location.pathname !== '/onboarding') {
+  if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 
