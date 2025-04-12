@@ -21,6 +21,9 @@ interface Course {
   progress?: number;
   started_at?: string;
   completed?: boolean;
+  status?: string;
+  category?: string;
+  related_skill?: string;
 }
 
 export default function Courses() {
@@ -42,10 +45,11 @@ export default function Courses() {
     
     setIsLoading(true);
     try {
-      // Fetch all courses
+      // Fetch all published courses
       const { data: coursesData, error: coursesError } = await supabase
         .from('courses')
         .select('*')
+        .eq('status', 'Published')
         .order('created_at', { ascending: false });
         
       if (coursesError) {
@@ -193,10 +197,24 @@ export default function Courses() {
                   </CardHeader>
                   
                   <CardContent>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4 mr-1" />
-                      <span>{course.estimated_hours || 'Unknown'} hours</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4 mr-1" />
+                        <span>{course.estimated_hours || 'Unknown'} hours</span>
+                      </div>
+                      
+                      {course.category && (
+                        <Badge variant="secondary" className="ml-2">
+                          {course.category}
+                        </Badge>
+                      )}
                     </div>
+                    
+                    {course.related_skill && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Related skill: {course.related_skill}
+                      </div>
+                    )}
                     
                     {isEnrolled(course.id) && (
                       <div className="mt-4">
@@ -261,6 +279,12 @@ export default function Courses() {
                     <div className="flex items-center text-sm text-muted-foreground mb-4">
                       <Clock className="h-4 w-4 mr-1" />
                       <span>{course.estimated_hours || 'Unknown'} hours</span>
+                      
+                      {course.category && (
+                        <Badge variant="secondary" className="ml-2">
+                          {course.category}
+                        </Badge>
+                      )}
                     </div>
                     
                     <div>
