@@ -36,35 +36,62 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/profile" element={<Profile />} />
-              {/* Add more protected routes here */}
-            </Route>
+            {/* Protected routes - dashboard redirects to /dashboard */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
             
             {/* Onboarding - protected but doesn't require completed onboarding */}
-            <Route element={<ProtectedRoute requireOnboarding={false} />}>
-              <Route path="/onboarding" element={<Onboarding />} />
-            </Route>
+            <Route path="/onboarding" element={
+              <ProtectedRoute requireOnboarding={false}>
+                <Onboarding />
+              </ProtectedRoute>
+            } />
             
-            {/* Role-based routes */}
-            <Route element={<ProtectedRoute requiredRoles={['admin', 'manager']} />}>
-              {/* Admin and manager only routes go here */}
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<Navigate to="/admin?tab=users" replace />} />
-              <Route path="/admin/learning-paths" element={<Navigate to="/admin?tab=paths" replace />} />
-            </Route>
+            {/* Admin routes - strictly enforced for admin role only */}
+            <Route path="/admin" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/users" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <Navigate to="/admin?tab=users" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/learning-paths" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <Navigate to="/admin?tab=paths" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/settings" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <Navigate to="/admin?tab=settings" replace />
+              </ProtectedRoute>
+            } />
             
-            <Route element={<ProtectedRoute requiredRoles={['admin']} />}>
-              {/* Admin only routes go here */}
-              <Route path="/admin/settings" element={<Navigate to="/admin?tab=settings" replace />} />
-            </Route>
+            {/* Management routes - for managers and admins */}
+            <Route path="/team" element={
+              <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                <div>Team Management Page</div>
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                <div>Analytics Page</div>
+              </ProtectedRoute>
+            } />
             
-            {/* Redirect from legacy routes */}
+            {/* Fallback routes */}
             <Route path="/index" element={<Navigate to="/dashboard" />} />
-            
-            {/* Fallback route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

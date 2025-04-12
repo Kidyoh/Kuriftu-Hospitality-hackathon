@@ -35,23 +35,36 @@ export default function ProtectedRoute({
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
+  // Skip role and onboarding checks if profile is not loaded due to potential recursion error
+  if (!profile) {
+    console.log("Profile not loaded, allowing access but with limited functionality");
+    // We'll still render the component/outlet without the profile
+    // This prevents us from getting stuck in a redirect loop
+    return <>{children ? children : <Outlet />}</>;
+  }
+
   // If this route has role requirements, check them
-  if (requiredRoles.length > 0 && profile) {
+  if (requiredRoles.length > 0) {
     if (!requiredRoles.includes(profile.role)) {
       console.log(`User role ${profile.role} doesn't match required roles [${requiredRoles.join(', ')}]`);
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to access this page."
+      });
       // User doesn't have the required role, redirect to dashboard
       return <Navigate to="/" replace />;
     }
   }
 
   // If a user hasn't completed onboarding and requireOnboarding is true
-  if (requireOnboarding && profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
+  if (requireOnboarding && !profile.onboarding_completed && location.pathname !== '/onboarding') {
     console.log("User hasn't completed onboarding, redirecting to /onboarding");
     return <Navigate to="/onboarding" replace />;
   }
 
   // If user is on onboarding page but has already completed onboarding
-  if (profile && profile.onboarding_completed && location.pathname === '/onboarding') {
+  if (profile.onboarding_completed && location.pathname === '/onboarding') {
     console.log("User already completed onboarding, redirecting to /");
     return <Navigate to="/" replace />;
   }

@@ -14,16 +14,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 30 10% 16%;
 
-    --primary: 25 95% 53%;
+    --primary: 27 92% 52%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 195 63% 49%;
+    --secondary: 143 100% 37%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 30 6% 90%;
     --muted-foreground: 30 6% 40%;
 
-    --accent: 135 41% 46%;
+    --accent: 0 85% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
@@ -31,7 +31,7 @@
 
     --border: 30 5% 86%;
     --input: 30 5% 86%;
-    --ring: 25 95% 53%;
+    --ring: 27 92% 52%;
 
     --radius: 0.5rem;
   }
@@ -46,16 +46,16 @@
     --popover: 30 10% 14%;
     --popover-foreground: 40 33% 96%;
 
-    --primary: 25 95% 53%;
+    --primary: 27 92% 52%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 195 63% 49%;
+    --secondary: 143 100% 37%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 30 6% 20%;
     --muted-foreground: 30 6% 70%;
 
-    --accent: 135 41% 46%;
+    --accent: 0 85% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 40.6%;
@@ -63,7 +63,7 @@
 
     --border: 30 5% 24%;
     --input: 30 5% 24%;
-    --ring: 25 95% 53%;
+    --ring: 27 92% 52%;
   }
 }
 
@@ -82,5 +82,42 @@
   .pattern-bg {
     background-color: #F7F5F0;
     background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23D9A15B' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  /* New styles based on the color scheme */
+  .cream-bg {
+    background-color: #FFD9A9;
+  }
+  
+  .green-bg {
+    background-color: #00BF3D;
+  }
+  
+  .red-bg {
+    background-color: #FE1C23;
+  }
+  
+  .brown-bg {
+    background-color: #5D0F00;
+  }
+  
+  .orange-bg {
+    background-color: #FA9C2C;
+  }
+  
+  .btn-primary {
+    @apply bg-kuriftu-orange hover:bg-kuriftu-orange/90 text-white;
+  }
+  
+  .btn-secondary {
+    @apply bg-kuriftu-green hover:bg-kuriftu-green/90 text-white;
+  }
+  
+  .btn-danger {
+    @apply bg-kuriftu-red hover:bg-kuriftu-red/90 text-white;
+  }
+  
+  .menu-item-active {
+    @apply bg-kuriftu-cream text-kuriftu-brown font-medium;
   }
 }

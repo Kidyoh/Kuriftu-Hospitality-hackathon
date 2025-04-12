@@ -53,13 +53,13 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// New color scheme based on the provided image
 				kuriftu: {
-					brown: '#8B4513',
-					terracotta: '#CD5C5C',
-					orange: '#F97316',
-					sand: '#FDE1D3',
-					blue: '#0EA5E9',
-					green: '#2E8B57'
+					cream: '#FFD9A9',     // Light cream color
+					green: '#00BF3D',     // Bright green
+					red: '#FE1C23',       // Vibrant red
+					brown: '#5D0F00',     // Deep brown
+					orange: '#FA9C2C'     // Orange accent
 				}
 			},
 			fontFamily: {
