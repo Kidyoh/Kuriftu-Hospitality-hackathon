@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 export default function Auth() {
   const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   // Sign In Form State
@@ -25,8 +25,13 @@ export default function Auth() {
   const [signUpLastName, setSignUpLastName] = useState('');
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
 
-  // If user is already logged in, redirect to dashboard
+  // If user is already logged in, redirect appropriately
   if (user) {
+    // Check if onboarding is completed
+    if (user && !user.user_metadata?.onboarding_completed) {
+      return <Navigate to="/onboarding" replace />;
+    }
+    // Otherwise go to dashboard
     return <Navigate to="/" replace />;
   }
 
@@ -38,13 +43,8 @@ export default function Auth() {
     
     setIsLoading(false);
     
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error.message || "Please check your credentials and try again.",
-      });
-    } else {
+    if (!error) {
+      // Navigation will happen automatically in the condition above
       toast({
         title: "Welcome back!",
         description: "You've successfully logged in.",
@@ -70,17 +70,12 @@ export default function Auth() {
     
     setIsLoading(false);
     
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: error.message || "Please check your information and try again.",
-      });
-    } else {
+    if (!error) {
       toast({
         title: "Account created!",
-        description: "Please check your email to confirm your registration.",
+        description: "You'll be redirected to complete your profile setup.",
       });
+      // Navigation will happen automatically in the condition above
     }
   };
 
@@ -209,6 +204,11 @@ export default function Auth() {
             </TabsContent>
           </Tabs>
         </Card>
+        <div className="mt-4 text-center">
+          <Button variant="link" onClick={() => navigate('/')}>
+            Return to Home
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -34,7 +34,7 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to={user ? "/dashboard" : "/"} className="flex items-center space-x-2">
             <span className="font-bold text-xl text-primary">
               {title}
             </span>
@@ -100,9 +100,14 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
             </DropdownMenu>
           </div>
         ) : (
-          <Link to="/auth">
-            <Button>Sign In</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link to="/auth">
+              <Button variant="outline">Sign In</Button>
+            </Link>
+            <Link to="/auth?tab=signup">
+              <Button>Sign Up</Button>
+            </Link>
+          </div>
         )}
       </div>
     </header>

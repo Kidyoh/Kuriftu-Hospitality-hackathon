@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,11 +7,13 @@ import { Loader2 } from 'lucide-react';
 interface ProtectedRouteProps {
   children?: React.ReactNode;
   requiredRoles?: Array<'admin' | 'manager' | 'staff' | 'trainee'>;
+  requireOnboarding?: boolean;
 }
 
 export default function ProtectedRoute({ 
   children, 
-  requiredRoles = []
+  requiredRoles = [],
+  requireOnboarding = true
 }: ProtectedRouteProps) {
   const { user, profile, isLoading } = useAuth();
   const location = useLocation();
@@ -38,9 +41,14 @@ export default function ProtectedRoute({
     }
   }
 
-  // If a user hasn't completed onboarding and is not already on the onboarding route
-  if (profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
+  // If a user hasn't completed onboarding and requireOnboarding is true
+  if (requireOnboarding && profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  // If user is on onboarding page but has already completed onboarding
+  if (profile && profile.onboarding_completed && location.pathname === '/onboarding') {
+    return <Navigate to="/" replace />;
   }
 
   // If children are provided, render them
