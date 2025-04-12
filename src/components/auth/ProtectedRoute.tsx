@@ -34,12 +34,25 @@ export default function ProtectedRoute({
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
-  // If profile is not loaded, allow conditional access to onboarding and profile pages
+  // Special handling for onboarding route
+  // Always allow access to onboarding route even without a profile
+  if (location.pathname === '/onboarding') {
+    // If profile exists and onboarding is completed, redirect to dashboard
+    if (profile && profile.onboarding_completed) {
+      console.log("User already completed onboarding, redirecting to /");
+      return <Navigate to="/" replace />;
+    }
+    
+    // Otherwise allow access to the onboarding page
+    return <>{children ? children : <Outlet />}</>;
+  }
+
+  // If profile is not loaded, show limited access message with retry option
   if (!profile) {
     console.log("Profile not loaded, allowing access but with limited functionality");
     
-    // Allow access to onboarding and profile pages even without profile
-    if (location.pathname === '/onboarding' || location.pathname === '/profile' || location.pathname === '/auth') {
+    // For profile page, allow access even without profile data
+    if (location.pathname === '/profile') {
       return <>{children ? children : <Outlet />}</>;
     }
     
@@ -84,16 +97,12 @@ export default function ProtectedRoute({
     }
   }
 
-  // If a user hasn't completed onboarding and requireOnboarding is true
-  if (requireOnboarding && !profile.onboarding_completed && location.pathname !== '/onboarding') {
+  // If a user hasn't completed onboarding and requireOnboarding is true, redirect to onboarding
+  // But don't do this for the profile and auth pages (they're always accessible)
+  if (requireOnboarding && !profile.onboarding_completed && 
+      location.pathname !== '/profile' && location.pathname !== '/auth') {
     console.log("User hasn't completed onboarding, redirecting to /onboarding");
     return <Navigate to="/onboarding" replace />;
-  }
-
-  // If user is on onboarding page but has already completed onboarding
-  if (profile.onboarding_completed && location.pathname === '/onboarding') {
-    console.log("User already completed onboarding, redirecting to /");
-    return <Navigate to="/" replace />;
   }
 
   // If children are provided, render them

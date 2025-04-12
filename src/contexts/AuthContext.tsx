@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,13 +83,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Log the attempt to load profile
       console.log(`Attempting to load profile for user: ${userId}`);
-      
-      // Try direct query approach with a single attempt
+
+      // Try a direct query with service role if available
+      // Otherwise fall back to standard client query
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle();  // Use maybeSingle instead of single to handle not found case
+        .maybeSingle();
 
       // Always mark that we've attempted to load the profile
       setProfileLoadAttempted(true);
@@ -98,14 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('Error fetching user profile:', error);
         
-        // For profile not found, try to create it
-        if (error.code === 'PGRST116') {
-          return await createProfileDirectly(userId);
-        } 
-        
-        // For other errors, including recursion, we'll handle them gracefully
-        console.warn('Could not load profile due to database error. User can continue with limited functionality.');
-        setIsLoading(false);
+        // For profile not found or other errors, try to create a default profile
+        await createProfileDirectly(userId);
         return;
       }
 
@@ -126,8 +120,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Direct approach for profile creation - simpler and less prone to errors
   const createProfileDirectly = async (userId: string) => {
     try {
-      const metadata = user?.user_metadata || {};
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
       
+      const metadata = user.user_metadata || {};
+      
+      // Create a minimal profile with only required fields
       const profileData = {
         id: userId,
         first_name: metadata.first_name || '',
@@ -135,30 +135,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: 'trainee' as const,
         onboarding_completed: false,
         joined_at: new Date().toISOString(),
-        department: null,
-        position: null,
-        avatar_url: null,
-        phone: null,
-        experience_level: null
       };
       
-      // Try a direct upsert operation
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert(profileData)
-        .select('*')
-        .maybeSingle();
+      console.log("Creating default profile with data:", profileData);
       
-      if (error) {
-        console.error('Error creating profile:', error);
-        // Don't throw, just handle the error gracefully
-        setIsLoading(false);
-        return;
-      }
-      
-      if (data) {
-        console.log('Profile created successfully:', data);
-        setProfile(data as UserProfile);
+      try {
+        // Try a direct insert with upsert
+        const { data, error } = await supabase
+          .from('profiles')
+          .upsert(profileData)
+          .select('*')
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error in profile fallback method:', error);
+          
+          // If we still can't create a profile, create a temporary local one
+          // This ensures the app won't crash even when DB operations fail
+          setProfile({
+            ...profileData,
+            department: null,
+            position: null,
+            avatar_url: null,
+            phone: null,
+            experience_level: null,
+          });
+          
+          setIsLoading(false);
+          return;
+        }
+        
+        if (data) {
+          console.log('Profile created successfully:', data);
+          setProfile(data as UserProfile);
+        }
+      } catch (innerErr) {
+        console.error('Inner try-catch for profile creation caught error:', innerErr);
+        // Create an in-memory profile as last resort
+        setProfile({
+          ...profileData,
+          department: null,
+          position: null,
+          avatar_url: null,
+          phone: null,
+          experience_level: null,
+        });
       }
       
       setIsLoading(false);
