@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -141,66 +142,32 @@ export default function Onboarding() {
 
     setIsLoading(true);
     try {
-      console.log("Completing onboarding for user:", user.id);
-      console.log("Updating profile with:", {
+      // Create a profile object with all necessary fields
+      const profileData = {
+        id: user.id,
         onboarding_completed: true,
         department,
         position,
         phone,
-        experience_level: experienceLevel
-      });
+        experience_level: experienceLevel,
+        // Include required fields to avoid null errors
+        first_name: user.user_metadata?.first_name || '',
+        last_name: user.user_metadata?.last_name || '',
+        role: 'trainee' as const,
+      };
 
-      const { data: existingProfile, error: fetchError } = await supabase
+      const { error } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+        .upsert(profileData);
 
-      if (fetchError && fetchError.code === 'PGRST116') {
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            onboarding_completed: true,
-            department,
-            position,
-            phone,
-            experience_level: experienceLevel,
-            first_name: user.user_metadata?.first_name || '',
-            last_name: user.user_metadata?.last_name || '',
-            role: 'trainee'
-          });
-
-        if (insertError) {
-          console.error('Error creating profile:', insertError);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: `Failed to create profile: ${insertError.message}`,
-          });
-          return false;
-        }
-      } else {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            onboarding_completed: true,
-            department,
-            position,
-            phone,
-            experience_level: experienceLevel
-          })
-          .eq('id', user.id);
-
-        if (updateError) {
-          console.error('Error updating profile:', updateError);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: `Failed to update profile: ${updateError.message}`,
-          });
-          return false;
-        }
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `Failed to update profile: ${error.message}`,
+        });
+        return false;
       }
 
       console.log("Onboarding completed successfully");

@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [profileAttempts, setProfileAttempts] = useState(0);
+  const [profileLoadAttempted, setProfileLoadAttempted] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
           setIsLoading(false);
+          setProfileLoadAttempted(false);
         }
       }
     );
@@ -78,140 +79,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Increase profile fetch attempts
-      setProfileAttempts(prev => prev + 1);
+      // Set loading state
+      setIsLoading(true);
       
-      // Try direct query approach to avoid RLS issues
+      // Log the attempt to load profile
+      console.log(`Attempting to load profile for user: ${userId}`);
+      
+      // Try direct query approach with a single attempt
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();  // Use maybeSingle instead of single to handle not found case
 
+      // Always mark that we've attempted to load the profile
+      setProfileLoadAttempted(true);
+
       if (error) {
         console.error('Error fetching user profile:', error);
         
-        // If profile doesn't exist, create it
+        // For profile not found, try to create it
         if (error.code === 'PGRST116') {
-          await createInitialProfile(userId);
-        } else {
-          // For other errors, especially if we have recursion errors, we'll fallback to a simplified approach
-          await createOrUpdateProfileWithFallback(userId);
-        }
+          return await createProfileDirectly(userId);
+        } 
+        
+        // For other errors, including recursion, we'll handle them gracefully
+        console.warn('Could not load profile due to database error. User can continue with limited functionality.');
+        setIsLoading(false);
         return;
       }
 
       if (!data) {
         console.log('No profile found, creating initial profile');
-        await createInitialProfile(userId);
-        return;
+        return await createProfileDirectly(userId);
       }
 
       console.log('Fetched user profile:', data);
       setProfile(data as UserProfile);
-      setProfileAttempts(0); // Reset attempts on success
       setIsLoading(false);
     } catch (err) {
       console.error('Unexpected error fetching profile:', err);
       setIsLoading(false);
-      
-      // Try again with a delay if we've had less than 3 attempts
-      if (profileAttempts < 3) {
-        setTimeout(() => fetchUserProfile(userId), 1000);
-      }
     }
   };
 
-  // Fallback approach using direct insert to bypass RLS issues
-  const createOrUpdateProfileWithFallback = async (userId: string) => {
+  // Direct approach for profile creation - simpler and less prone to errors
+  const createProfileDirectly = async (userId: string) => {
     try {
-      // Try to get user metadata directly from the session
-      const metadata = user?.user_metadata;
+      const metadata = user?.user_metadata || {};
       
-      const firstName = metadata?.first_name || '';
-      const lastName = metadata?.last_name || '';
+      const profileData = {
+        id: userId,
+        first_name: metadata.first_name || '',
+        last_name: metadata.last_name || '',
+        role: 'trainee' as const,
+        onboarding_completed: false,
+        joined_at: new Date().toISOString(),
+        department: null,
+        position: null,
+        avatar_url: null,
+        phone: null,
+        experience_level: null
+      };
       
-      // Use direct insert/upsert approach instead of RPC
+      // Try a direct upsert operation
       const { data, error } = await supabase
         .from('profiles')
-        .upsert({
-          id: userId,
-          first_name: firstName,
-          last_name: lastName,
-          role: 'trainee',
-          onboarding_completed: false,
-          joined_at: new Date().toISOString()
-        })
+        .upsert(profileData)
         .select('*')
         .maybeSingle();
       
       if (error) {
-        console.error('Error in profile fallback method:', error);
-        toast({
-          variant: "destructive",
-          title: "Error creating profile",
-          description: "Please try refreshing the page or contact support.",
-        });
+        console.error('Error creating profile:', error);
+        // Don't throw, just handle the error gracefully
         setIsLoading(false);
         return;
       }
       
       if (data) {
-        console.log('Profile created/updated using fallback method:', data);
+        console.log('Profile created successfully:', data);
         setProfile(data as UserProfile);
-        setProfileAttempts(0);
       }
       
       setIsLoading(false);
     } catch (err) {
-      console.error('Unexpected error in fallback profile creation:', err);
-      setIsLoading(false);
-    }
-  };
-
-  const createInitialProfile = async (userId: string) => {
-    try {
-      // Try to get user metadata directly from the session
-      const metadata = user?.user_metadata;
-      
-      const firstName = metadata?.first_name || '';
-      const lastName = metadata?.last_name || '';
-      
-      // Use upsert to handle both create and update scenarios
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          first_name: firstName,
-          last_name: lastName,
-          role: 'trainee',
-          onboarding_completed: false,
-          joined_at: new Date().toISOString()
-        })
-        .select('*')
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error creating initial profile:', error);
-        
-        // If we still have issues, try the fallback approach
-        if (error.code === '42P17') {
-          await createOrUpdateProfileWithFallback(userId);
-          return;
-        }
-        
-        toast({
-          variant: "destructive",
-          title: "Error creating profile",
-          description: "Please try refreshing the page or contact support.",
-        });
-      } else if (data) {
-        console.log('Initial profile created:', data);
-        setProfile(data as UserProfile);
-      }
-    } catch (err) {
-      console.error('Unexpected error creating initial profile:', err);
-    } finally {
+      console.error('Unexpected error creating profile:', err);
       setIsLoading(false);
     }
   };
@@ -224,7 +176,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = async () => {
     if (!user) return;
     setIsLoading(true);
-    setProfileAttempts(0); // Reset attempts counter
     await fetchUserProfile(user.id);
   };
 

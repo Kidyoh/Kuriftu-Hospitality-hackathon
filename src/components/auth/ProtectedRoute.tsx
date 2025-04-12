@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,21 +34,12 @@ export default function ProtectedRoute({
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
-  // If profile is not loaded, show limited functionality message but continue to allow critical paths
+  // If profile is not loaded, allow conditional access to onboarding and profile pages
   if (!profile) {
     console.log("Profile not loaded, allowing access but with limited functionality");
     
-    // Auto-refresh profile after a delay (only once)
-    React.useEffect(() => {
-      const timer = setTimeout(() => {
-        refreshProfile();
-      }, 3000);
-      
-      return () => clearTimeout(timer);
-    }, []);
-    
     // Allow access to onboarding and profile pages even without profile
-    if (location.pathname === '/onboarding' || location.pathname === '/profile') {
+    if (location.pathname === '/onboarding' || location.pathname === '/profile' || location.pathname === '/auth') {
       return <>{children ? children : <Outlet />}</>;
     }
     
