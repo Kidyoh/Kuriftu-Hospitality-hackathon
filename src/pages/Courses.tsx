@@ -139,6 +139,13 @@ export default function Courses() {
     }
   };
   
+  const switchToAllCoursesTab = () => {
+    const allTabTrigger = document.querySelector('button[value="all"]') as HTMLButtonElement | null;
+    if (allTabTrigger) {
+      allTabTrigger.click();
+    }
+  };
+  
   return (
     <div className="container py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -282,7 +289,7 @@ export default function Courses() {
               <BookOpen className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-medium">No enrolled courses</h3>
               <p className="text-muted-foreground mb-6">{searchQuery ? 'Try a different search term' : "You haven't enrolled in any courses yet"}</p>
-              <Button onClick={() => document.querySelector('button[value="all"]')?.click()}>
+              <Button onClick={switchToAllCoursesTab}>
                 Browse Courses
               </Button>
             </div>

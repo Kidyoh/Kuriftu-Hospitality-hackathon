@@ -225,8 +225,8 @@ export default function Onboarding() {
     setCurrentStep(prev => (prev > 0 ? prev - 1 : prev));
   };
 
-  const getAiRecommendations = async (answers: Record<string, string>) => {
-    if (!user) return;
+  const getAiRecommendations = async (answers: Record<string, string>): Promise<boolean> => {
+    if (!user) return false;
     
     setAssessmentAnswers(answers);
     setIsAiLoading(true);
@@ -286,8 +286,9 @@ export default function Onboarding() {
         setAiRecommendations(mockRecommendation);
       }
       
-      await updateOnboardingStep(ONBOARDING_STEPS[currentStep]);
+      const success = await updateOnboardingStep(ONBOARDING_STEPS[currentStep]);
       setCurrentStep(prev => prev + 1);
+      return success;
     } catch (error) {
       console.error('Error in AI recommendations:', error);
       toast({
@@ -295,12 +296,13 @@ export default function Onboarding() {
         title: "Error",
         description: "Failed to get AI recommendations.",
       });
+      return false;
     } finally {
       setIsAiLoading(false);
     }
   };
 
-  const finishOnboarding = async () => {
+  const finishOnboarding = async (): Promise<boolean> => {
     setIsLoading(true);
     const completed = await completeOnboarding();
     setIsLoading(false);
@@ -312,6 +314,7 @@ export default function Onboarding() {
       });
       navigate('/');
     }
+    return completed;
   };
 
   const renderStep = () => {
