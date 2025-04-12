@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await createInitialProfile(userId);
         } else {
           // For other errors, especially if we have recursion errors, we'll fallback to a simplified approach
-          await createOrUpdateProfileWithRPC(userId);
+          await createOrUpdateProfileWithFallback(userId);
         }
         return;
       }
@@ -122,21 +122,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Fallback approach using RPC to bypass RLS issues
-  const createOrUpdateProfileWithRPC = async (userId: string) => {
+  // Fallback approach using direct insert to bypass RLS issues
+  const createOrUpdateProfileWithFallback = async (userId: string) => {
     try {
       // Try to get user metadata directly from the session
       const metadata = user?.user_metadata;
       
-      // Use a direct insert approach with conflict handling
-      const { data, error } = await supabase.rpc('handle_user_profile', { 
-        user_id: userId,
-        user_first_name: metadata?.first_name || '',
-        user_last_name: metadata?.last_name || ''
-      });
+      const firstName = metadata?.first_name || '';
+      const lastName = metadata?.last_name || '';
+      
+      // Use direct insert/upsert approach instead of RPC
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          first_name: firstName,
+          last_name: lastName,
+          role: 'trainee',
+          onboarding_completed: false,
+          joined_at: new Date().toISOString()
+        })
+        .select('*')
+        .maybeSingle();
       
       if (error) {
-        console.error('Error handling profile with RPC:', error);
+        console.error('Error in profile fallback method:', error);
         toast({
           variant: "destructive",
           title: "Error creating profile",
@@ -146,25 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      // After successful RPC call, fetch the profile again
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-        
-      if (profileError || !profileData) {
-        console.error('Error fetching profile after RPC:', profileError);
-        setIsLoading(false);
-        return;
+      if (data) {
+        console.log('Profile created/updated using fallback method:', data);
+        setProfile(data as UserProfile);
+        setProfileAttempts(0);
       }
       
-      setProfile(profileData as UserProfile);
-      setProfileAttempts(0);
       setIsLoading(false);
-      
     } catch (err) {
-      console.error('Unexpected error in createOrUpdateProfileWithRPC:', err);
+      console.error('Unexpected error in fallback profile creation:', err);
       setIsLoading(false);
     }
   };
@@ -194,9 +194,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('Error creating initial profile:', error);
         
-        // If we still have RLS issues, try the RPC approach
+        // If we still have issues, try the fallback approach
         if (error.code === '42P17') {
-          await createOrUpdateProfileWithRPC(userId);
+          await createOrUpdateProfileWithFallback(userId);
           return;
         }
         
