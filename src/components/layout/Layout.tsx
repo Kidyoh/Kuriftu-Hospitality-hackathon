@@ -8,9 +8,14 @@ import { Navigate } from 'react-router-dom';
 interface LayoutProps {
   children: React.ReactNode;
   requiredRoles?: Array<'admin' | 'manager' | 'staff' | 'trainee'>;
+  showSidebar?: boolean;
 }
 
-export function Layout({ children, requiredRoles = [] }: LayoutProps) {
+export function Layout({ 
+  children, 
+  requiredRoles = [],
+  showSidebar = true 
+}: LayoutProps) {
   const { profile, isLoading } = useAuth();
   
   // Show loading state while checking authentication
@@ -49,7 +54,7 @@ export function Layout({ children, requiredRoles = [] }: LayoutProps) {
     <div className="min-h-screen flex flex-col">
       <Header />
       <div className="flex-1 flex">
-        <Sidebar />
+        {showSidebar && <Sidebar />}
         <main className={`flex-1 ${getBgColor()}`}>
           {children}
         </main>
