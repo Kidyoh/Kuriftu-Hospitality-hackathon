@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -20,7 +19,7 @@ import {
   DropdownMenuLabel, DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import {
-  ArrowLeft, Plus, MoreHorizontal, Edit, Trash2, Video, MoveUp, MoveDown
+  ArrowLeft, Plus, MoreHorizontal, Edit, Trash2, Video, MoveUp, MoveDown, Book
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -239,7 +238,6 @@ export default function AdminCourseLessons() {
   };
   
   const moveLesson = async (lesson: Lesson, direction: 'up' | 'down') => {
-    // Find the lesson before or after this one
     const currentIndex = lessons.findIndex(l => l.id === lesson.id);
     let targetIndex;
     
@@ -248,13 +246,11 @@ export default function AdminCourseLessons() {
     } else if (direction === 'down' && currentIndex < lessons.length - 1) {
       targetIndex = currentIndex + 1;
     } else {
-      return; // Can't move any further
+      return;
     }
     
-    // Get target lesson
     const targetLesson = lessons[targetIndex];
     
-    // Swap sequence orders
     try {
       const updates = [
         {
@@ -267,7 +263,6 @@ export default function AdminCourseLessons() {
         }
       ];
       
-      // Update both lessons
       for (const update of updates) {
         const { error } = await supabase
           .from('course_lessons')
@@ -467,7 +462,7 @@ export default function AdminCourseLessons() {
                               Edit Lesson
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => goToQuizzes(lesson.id)}>
-                              <Video className="h-4 w-4 mr-2" />
+                              <Book className="h-4 w-4 mr-2" />
                               Manage Quizzes
                             </DropdownMenuItem>
                             <DropdownMenuItem 

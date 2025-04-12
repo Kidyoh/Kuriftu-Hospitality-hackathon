@@ -20,6 +20,9 @@ import Courses from "./pages/Courses";
 import AdminCourseManagement from "./pages/AdminCourseManagement";
 import AdminLearningPaths from "./pages/AdminLearningPaths";
 import AdminCourseLessons from "./pages/AdminCourseLessons";
+import AdminQuizzes from "./pages/AdminQuizzes";
+import AdminQuizQuestions from "./pages/AdminQuizQuestions";
+import TakeQuiz from "./pages/TakeQuiz";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +75,19 @@ const App = () => (
               </ProtectedRoute>
             } />
             
+            {/* Quiz taking routes */}
+            <Route path="/courses/:courseId/quizzes/:quizId" element={
+              <ProtectedRoute>
+                <TakeQuiz />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/courses/:courseId/lessons/:lessonId/quizzes/:quizId" element={
+              <ProtectedRoute>
+                <TakeQuiz />
+              </ProtectedRoute>
+            } />
+            
             {/* Onboarding - protected but doesn't require completed onboarding */}
             <Route path="/onboarding" element={
               <ProtectedRoute requireOnboarding={false}>
@@ -100,6 +116,31 @@ const App = () => (
               <ProtectedRoute requiredRoles={['admin']}>
                 <Layout requiredRoles={['admin']}>
                   <AdminCourseLessons />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            
+            {/* Admin Quiz Management Routes */}
+            <Route path="/admin/courses/:courseId/quizzes" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <Layout requiredRoles={['admin']}>
+                  <AdminQuizzes />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/admin/courses/:courseId/lessons/:lessonId/quizzes" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <Layout requiredRoles={['admin']}>
+                  <AdminQuizzes />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/admin/courses/:courseId/quizzes/:quizId/questions" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <Layout requiredRoles={['admin']}>
+                  <AdminQuizQuestions />
                 </Layout>
               </ProtectedRoute>
             } />
