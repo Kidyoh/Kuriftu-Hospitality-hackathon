@@ -18,6 +18,7 @@ import { Layout } from "./components/layout/Layout";
 import LearningPath from "./pages/LearningPath";
 import Courses from "./pages/Courses";
 import AdminCourseManagement from "./pages/AdminCourseManagement";
+import AdminLearningPaths from "./pages/AdminLearningPaths";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -90,6 +91,14 @@ const App = () => (
               <ProtectedRoute requiredRoles={['admin']}>
                 <Layout requiredRoles={['admin']}>
                   <AdminCourseManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/learning-paths" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <Layout requiredRoles={['admin']}>
+                  <AdminLearningPaths />
                 </Layout>
               </ProtectedRoute>
             } />

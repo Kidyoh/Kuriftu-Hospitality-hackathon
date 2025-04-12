@@ -71,7 +71,8 @@ export default function CompletionStep({
             title: course.title,
             description: course.description,
             estimated_hours: course.hours,
-            difficulty_level: determineDifficulty(course.importance)
+            difficulty_level: determineDifficulty(course.importance),
+            status: 'Published'
           })
           .select('id')
           .single();
@@ -86,7 +87,7 @@ export default function CompletionStep({
       
       const courseResults = await Promise.all(coursePromises);
       
-      // Create learning path
+      // Create main learning path in learning_paths table
       const { data: pathData, error: pathError } = await supabase
         .from('learning_paths')
         .insert({
@@ -120,6 +121,22 @@ export default function CompletionStep({
       });
       
       await Promise.all(pathCoursePromises);
+      
+      // Now create a user-specific learning path record
+      const { error: userPathError } = await supabase
+        .from('user_learning_paths')
+        .insert({
+          name: `${department || 'General'} Personalized Learning Path`,
+          description: aiRecommendations.recommendedLearningPath,
+          ai_generated: true,
+          under_review: true,
+          admin_approved: false
+        });
+        
+      if (userPathError) {
+        console.error('Error creating user learning path:', userPathError);
+        // Continue anyway as the main learning path was created
+      }
       
       toast({
         title: "Learning Path Created",
