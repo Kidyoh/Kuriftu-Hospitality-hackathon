@@ -3,6 +3,7 @@ import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -30,12 +31,14 @@ export default function ProtectedRoute({
   
   // If not logged in, redirect to auth page
   if (!user) {
+    console.log("No user found, redirecting to /auth");
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
   // If this route has role requirements, check them
   if (requiredRoles.length > 0 && profile) {
     if (!requiredRoles.includes(profile.role)) {
+      console.log(`User role ${profile.role} doesn't match required roles [${requiredRoles.join(', ')}]`);
       // User doesn't have the required role, redirect to dashboard
       return <Navigate to="/" replace />;
     }
@@ -43,11 +46,13 @@ export default function ProtectedRoute({
 
   // If a user hasn't completed onboarding and requireOnboarding is true
   if (requireOnboarding && profile && !profile.onboarding_completed && location.pathname !== '/onboarding') {
+    console.log("User hasn't completed onboarding, redirecting to /onboarding");
     return <Navigate to="/onboarding" replace />;
   }
 
   // If user is on onboarding page but has already completed onboarding
   if (profile && profile.onboarding_completed && location.pathname === '/onboarding') {
+    console.log("User already completed onboarding, redirecting to /");
     return <Navigate to="/" replace />;
   }
 

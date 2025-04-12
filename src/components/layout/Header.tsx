@@ -30,6 +30,9 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
     return `${profile.first_name.charAt(0)}${profile.last_name.charAt(0)}`.toUpperCase();
   };
 
+  const isAdmin = profile?.role === 'admin';
+  const isManager = profile?.role === 'manager' || isAdmin;
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
       <div className="container flex h-16 items-center">
@@ -59,6 +62,13 @@ export function Header({ title = "Kuriftu Learning Village" }: HeaderProps) {
         
         {user ? (
           <div className="flex items-center gap-2">
+            {/* Admin quick access */}
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => navigate('/admin')} className="mr-2">
+                Admin Dashboard
+              </Button>
+            )}
+            
             <Button variant="ghost" size="icon">
               <Search className="h-5 w-5" />
               <span className="sr-only">Search</span>

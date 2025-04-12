@@ -13,6 +13,7 @@ import Onboarding from "./pages/Onboarding";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,13 +51,14 @@ const App = () => (
             {/* Role-based routes */}
             <Route element={<ProtectedRoute requiredRoles={['admin', 'manager']} />}>
               {/* Admin and manager only routes go here */}
-              <Route path="/admin/users" element={<Dashboard />} />
-              <Route path="/admin/learning-paths" element={<Dashboard />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<Navigate to="/admin?tab=users" replace />} />
+              <Route path="/admin/learning-paths" element={<Navigate to="/admin?tab=paths" replace />} />
             </Route>
             
             <Route element={<ProtectedRoute requiredRoles={['admin']} />}>
               {/* Admin only routes go here */}
-              <Route path="/admin/settings" element={<Dashboard />} />
+              <Route path="/admin/settings" element={<Navigate to="/admin?tab=settings" replace />} />
             </Route>
             
             {/* Redirect from legacy routes */}

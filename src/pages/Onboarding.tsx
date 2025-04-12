@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +7,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Import our step components
 import WelcomeStep from '@/components/onboarding/WelcomeStep';
 import PersonalInfoForm from '@/components/onboarding/PersonalInfoForm';
 import DepartmentForm from '@/components/onboarding/DepartmentForm';
@@ -54,7 +52,6 @@ export default function Onboarding() {
   const [progress, setProgress] = useState(0);
   const [steps, setSteps] = useState<OnboardingStep[]>([]);
 
-  // Form state
   const [phone, setPhone] = useState(profile?.phone || '');
   const [department, setDepartment] = useState(profile?.department || '');
   const [position, setPosition] = useState(profile?.position || '');
@@ -70,7 +67,6 @@ export default function Onboarding() {
   }, [user]);
 
   useEffect(() => {
-    // Update progress bar based on current step
     setProgress(((currentStep + 1) / ONBOARDING_STEPS.length) * 100);
   }, [currentStep]);
 
@@ -93,7 +89,6 @@ export default function Onboarding() {
         });
       } else if (data) {
         setSteps(data);
-        // Find the first uncompleted step
         const stepsMap = new Map(data.map(step => [step.step, step]));
         const firstUncompleted = ONBOARDING_STEPS.findIndex(step => {
           const stepData = stepsMap.get(step);
@@ -135,10 +130,27 @@ export default function Onboarding() {
   };
 
   const completeOnboarding = async () => {
-    if (!user) return false;
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "User not found. Please try logging in again.",
+      });
+      return false;
+    }
 
+    setIsLoading(true);
     try {
-      const { error } = await supabase
+      console.log("Completing onboarding for user:", user.id);
+      console.log("Updating profile with:", {
+        onboarding_completed: true,
+        department,
+        position,
+        phone,
+        experience_level: experienceLevel
+      });
+
+      const { error, data } = await supabase
         .from('profiles')
         .update({
           onboarding_completed: true,
@@ -147,24 +159,38 @@ export default function Onboarding() {
           phone,
           experience_level: experienceLevel
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select();
 
       if (error) {
         console.error('Error completing onboarding:', error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to complete onboarding.",
+          description: `Failed to complete onboarding: ${error.message}`,
         });
         return false;
       }
 
-      // Refresh the user profile in the auth context
+      console.log("Onboarding completed successfully, profile data:", data);
+      
       await refreshProfile();
+      
+      toast({
+        title: "Onboarding complete!",
+        description: "You're all set to start using the platform.",
+      });
       return true;
     } catch (error) {
       console.error('Unexpected error completing onboarding:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `An unexpected error occurred: ${error.message}`,
+      });
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -185,7 +211,6 @@ export default function Onboarding() {
   };
 
   const handleStepComplete = async () => {
-    // Save current step progress
     const currentStepId = ONBOARDING_STEPS[currentStep];
     const updated = await updateOnboardingStep(currentStepId);
 
@@ -198,7 +223,6 @@ export default function Onboarding() {
       return;
     }
 
-    // Move to the next step
     setCurrentStep(prev => prev + 1);
   };
 
