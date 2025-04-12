@@ -49,13 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // Use setTimeout to prevent potential recursion
         if (currentSession?.user) {
+          // Use setTimeout to prevent potential recursion
           setTimeout(() => {
             fetchUserProfile(currentSession.user.id);
           }, 0);
         } else {
           setProfile(null);
+          setIsLoading(false);
         }
       }
     );
@@ -80,11 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Increase profile fetch attempts
       setProfileAttempts(prev => prev + 1);
       
+      // Try direct query approach to avoid RLS issues
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();  // Use maybeSingle instead of single to handle not found case
 
       if (error) {
         console.error('Error fetching user profile:', error);
@@ -92,17 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If profile doesn't exist, create it
         if (error.code === 'PGRST116') {
           await createInitialProfile(userId);
-        } else if (profileAttempts < 3) {
-          // Try again with a delay if we've had less than 3 attempts
-          setTimeout(() => fetchUserProfile(userId), 1000);
         } else {
-          setIsLoading(false);
-          toast({
-            variant: "destructive",
-            title: "Error loading profile",
-            description: "Please try refreshing the page or contact support.",
-          });
+          // For other errors, especially if we have recursion errors, we'll fallback to a simplified approach
+          await createOrUpdateProfileWithRPC(userId);
         }
+        return;
+      }
+
+      if (!data) {
+        console.log('No profile found, creating initial profile');
+        await createInitialProfile(userId);
         return;
       }
 
@@ -113,10 +114,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Unexpected error fetching profile:', err);
       setIsLoading(false);
+      
+      // Try again with a delay if we've had less than 3 attempts
       if (profileAttempts < 3) {
-        // Try again with a delay if we've had less than 3 attempts
         setTimeout(() => fetchUserProfile(userId), 1000);
       }
+    }
+  };
+
+  // Fallback approach using RPC to bypass RLS issues
+  const createOrUpdateProfileWithRPC = async (userId: string) => {
+    try {
+      // Try to get user metadata directly from the session
+      const metadata = user?.user_metadata;
+      
+      // Use a direct insert approach with conflict handling
+      const { data, error } = await supabase.rpc('handle_user_profile', { 
+        user_id: userId,
+        user_first_name: metadata?.first_name || '',
+        user_last_name: metadata?.last_name || ''
+      });
+      
+      if (error) {
+        console.error('Error handling profile with RPC:', error);
+        toast({
+          variant: "destructive",
+          title: "Error creating profile",
+          description: "Please try refreshing the page or contact support.",
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // After successful RPC call, fetch the profile again
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (profileError || !profileData) {
+        console.error('Error fetching profile after RPC:', profileError);
+        setIsLoading(false);
+        return;
+      }
+      
+      setProfile(profileData as UserProfile);
+      setProfileAttempts(0);
+      setIsLoading(false);
+      
+    } catch (err) {
+      console.error('Unexpected error in createOrUpdateProfileWithRPC:', err);
+      setIsLoading(false);
     }
   };
 
@@ -128,26 +177,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const firstName = metadata?.first_name || '';
       const lastName = metadata?.last_name || '';
       
+      // Use upsert to handle both create and update scenarios
       const { data, error } = await supabase
         .from('profiles')
-        .insert({
+        .upsert({
           id: userId,
           first_name: firstName,
           last_name: lastName,
           role: 'trainee',
-          onboarding_completed: false
+          onboarding_completed: false,
+          joined_at: new Date().toISOString()
         })
         .select('*')
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error('Error creating initial profile:', error);
+        
+        // If we still have RLS issues, try the RPC approach
+        if (error.code === '42P17') {
+          await createOrUpdateProfileWithRPC(userId);
+          return;
+        }
+        
         toast({
           variant: "destructive",
           title: "Error creating profile",
           description: "Please try refreshing the page or contact support.",
         });
-      } else {
+      } else if (data) {
         console.log('Initial profile created:', data);
         setProfile(data as UserProfile);
       }

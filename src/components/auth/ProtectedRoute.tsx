@@ -35,7 +35,7 @@ export default function ProtectedRoute({
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
-  // If profile is not loaded, show limited functionality message but continue
+  // If profile is not loaded, show limited functionality message but continue to allow critical paths
   if (!profile) {
     console.log("Profile not loaded, allowing access but with limited functionality");
     
@@ -48,17 +48,12 @@ export default function ProtectedRoute({
       return () => clearTimeout(timer);
     }, []);
     
-    // Allow access to onboarding even without profile
-    if (location.pathname === '/onboarding') {
+    // Allow access to onboarding and profile pages even without profile
+    if (location.pathname === '/onboarding' || location.pathname === '/profile') {
       return <>{children ? children : <Outlet />}</>;
     }
     
-    // For profile page, allow access so user can potentially fix their profile
-    if (location.pathname === '/profile') {
-      return <>{children ? children : <Outlet />}</>;
-    }
-    
-    // For other pages, show profile loading state
+    // For other pages, show profile loading state with retry button
     return (
       <div className="flex h-screen flex-col items-center justify-center p-4">
         <Loader2 className="h-8 w-8 animate-spin text-kuriftu-green mb-4" />
@@ -66,12 +61,21 @@ export default function ProtectedRoute({
         <p className="text-center text-muted-foreground mb-4">
           Your profile data is still loading. Some features may be limited until your profile loads.
         </p>
-        <button
-          onClick={() => refreshProfile()}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-        >
-          Retry Loading Profile
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => refreshProfile()}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            Retry Loading Profile
+          </button>
+          
+          <button
+            onClick={() => window.location.href = "/onboarding"}
+            className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90"
+          >
+            Go to Onboarding
+          </button>
+        </div>
       </div>
     );
   }

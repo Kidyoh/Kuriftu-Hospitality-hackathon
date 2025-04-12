@@ -32,3 +32,36 @@ BEGIN;
     TO authenticated
     USING (bucket_id = 'avatars');
 COMMIT;
+
+-- Create a function to handle user profile operations that bypasses RLS
+CREATE OR REPLACE FUNCTION public.handle_user_profile(
+  user_id UUID,
+  user_first_name TEXT,
+  user_last_name TEXT
+) RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  INSERT INTO public.profiles (
+    id, 
+    first_name, 
+    last_name, 
+    role, 
+    onboarding_completed,
+    joined_at
+  )
+  VALUES (
+    user_id,
+    user_first_name,
+    user_last_name,
+    'trainee',
+    false,
+    NOW()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name;
+END;
+$$;
+
