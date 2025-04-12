@@ -15,6 +15,8 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard";
 import { Layout } from "./components/layout/Layout";
+import LearningPath from "./pages/LearningPath";
+import Courses from "./pages/Courses";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,16 +42,29 @@ const App = () => (
             {/* Protected routes with role-based access */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Layout>
-                  <Dashboard />
-                </Layout>
+                <Dashboard />
               </ProtectedRoute>
             } />
             
             <Route path="/profile" element={
               <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            
+            {/* Learning paths and courses */}
+            <Route path="/my-learning" element={
+              <ProtectedRoute>
                 <Layout>
-                  <Profile />
+                  <LearningPath />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/courses" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Courses />
                 </Layout>
               </ProtectedRoute>
             } />

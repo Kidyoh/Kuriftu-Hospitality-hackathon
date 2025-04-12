@@ -49,10 +49,8 @@ export function Layout({ children, requiredRoles = [] }: LayoutProps) {
     <div className="min-h-screen flex flex-col">
       <Header />
       <div className="flex-1 flex">
-        <aside className="hidden md:flex w-64 flex-col border-r bg-background">
-          <Sidebar />
-        </aside>
-        <main className={`flex-1 flex flex-col ${getBgColor()}`}>
+        <Sidebar />
+        <main className={`flex-1 ${getBgColor()}`}>
           {children}
         </main>
       </div>
