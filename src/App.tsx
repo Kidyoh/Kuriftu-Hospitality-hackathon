@@ -132,7 +132,7 @@ const App = () => (
                 </Layout>
               } />
               
-              {/* Admin routes */}
+              {/* Admin routes - All using the same layout with consistent sidebar */}
               <Route path="/admin" element={
                 <Layout requiredRoles={['admin']}>
                   <AdminDashboard />
@@ -140,32 +140,60 @@ const App = () => (
               } />
               
               <Route path="/admin/courses" element={
-                <Layout requiredRoles={['admin']} showSidebar={false}>
+                <Layout requiredRoles={['admin']} showSidebar={true}>
                   <AdminCourseManagement />
                 </Layout>
               } />
               
               <Route path="/admin/courses/:courseId/lessons" element={
-                <Layout requiredRoles={['admin']} showSidebar={false}>
+                <Layout requiredRoles={['admin']} showSidebar={true}>
                   <CourseLessons />
                 </Layout>
               } />
               
               <Route path="/admin/courses/:courseId/quizzes" element={
-                <Layout requiredRoles={['admin']} showSidebar={false}>
+                <Layout requiredRoles={['admin']} showSidebar={true}>
                   <AdminQuizzes />
                 </Layout>
               } />
               
               <Route path="/admin/courses/:courseId/quizzes/:quizId/questions" element={
-                <Layout requiredRoles={['admin']} showSidebar={false}>
+                <Layout requiredRoles={['admin']} showSidebar={true}>
                   <AdminQuizQuestions />
                 </Layout>
               } />
               
               <Route path="/admin/learning-paths" element={
-                <Layout requiredRoles={['admin']} showSidebar={false}>
+                <Layout requiredRoles={['admin']} showSidebar={true}>
                   <AdminLearningPaths />
+                </Layout>
+              } />
+              
+              {/* Admin routes for user management and analytics (to be implemented) */}
+              <Route path="/admin/users" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">User Management</h1>
+                    <p>Manage users and permissions.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              <Route path="/admin/analytics" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">Admin Analytics</h1>
+                    <p>View detailed analytics and reports.</p>
+                  </div>
+                </Layout>
+              } />
+              
+              <Route path="/admin/settings" element={
+                <Layout requiredRoles={['admin']} showSidebar={true}>
+                  <div className="container py-6">
+                    <h1 className="text-2xl font-bold mb-4">System Settings</h1>
+                    <p>Configure system-wide settings.</p>
+                  </div>
                 </Layout>
               } />
               

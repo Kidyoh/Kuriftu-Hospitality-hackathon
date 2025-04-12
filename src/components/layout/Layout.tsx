@@ -51,16 +51,21 @@ export function Layout({
     }
   };
 
-  // Check if current path is admin path to avoid double sidebar
+  // Check if current path is admin path
   const isAdminPath = location.pathname.startsWith('/admin');
-  const showSidebarFinal = showSidebar && (!isAdminPath || location.pathname === '/admin');
+  
+  // For admin pages with nested routes (like /admin/courses), hide the sidebar
+  const showAdminSidebar = isAdminPath && location.pathname === '/admin';
+  
+  // Determine if we should show the sidebar based on both props and current path
+  const showSidebarFinal = showSidebar && (showAdminSidebar || !isAdminPath);
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <div className="flex-1 flex">
         {showSidebarFinal && <Sidebar />}
-        <main className={`flex-1 ${getBgColor()} overflow-auto`}>
+        <main className={`flex-1 ${getBgColor()} overflow-auto p-4`}>
           {children}
         </main>
       </div>

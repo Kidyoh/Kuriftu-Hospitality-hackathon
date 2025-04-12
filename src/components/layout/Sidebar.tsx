@@ -6,7 +6,8 @@ import {
   Trophy, Users, FileText,
   Home, Settings, HelpCircle,
   Briefcase, User, LineChart,
-  CalendarDays, MessageSquare, Coffee
+  CalendarDays, MessageSquare, Coffee,
+  ShieldAlert
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -86,11 +87,76 @@ export function Sidebar({ className }: SidebarProps) {
     );
   }
   
+  // Check for admin path to show admin sidebar
+  const isAdminPath = path.startsWith('/admin');
+  
   // Check for roles using the hasRole function
   const isAdmin = hasRole(['admin']);
   const isManager = hasRole(['admin', 'manager']);
   const isStaff = hasRole(['admin', 'manager', 'staff']);
   
+  // For admin routes, show a specific admin sidebar
+  if (isAdminPath) {
+    return (
+      <div className={cn("pb-12 w-64 border-r", className)}>
+        <div className="space-y-4 py-4">
+          <div className="px-4 py-2">
+            <h2 className="mb-2 px-2 text-xl font-semibold tracking-tight text-kuriftu-brown">
+              Admin Console
+            </h2>
+            <div className="space-y-1">
+              <SidebarItem 
+                icon={ShieldAlert} 
+                label="Admin Dashboard" 
+                href="/admin" 
+                active={path === '/admin'} 
+              />
+              <SidebarItem 
+                icon={BookOpen} 
+                label="Course Management" 
+                href="/admin/courses" 
+                active={isActive(path, '/admin/courses')} 
+              />
+              <SidebarItem 
+                icon={GraduationCap} 
+                label="Learning Paths" 
+                href="/admin/learning-paths" 
+                active={isActive(path, '/admin/learning-paths')} 
+              />
+              <SidebarItem 
+                icon={Users} 
+                label="User Management" 
+                href="/admin/users" 
+                active={isActive(path, '/admin/users')} 
+              />
+              <SidebarItem 
+                icon={BarChart2} 
+                label="Analytics" 
+                href="/admin/analytics" 
+                active={isActive(path, '/admin/analytics')} 
+              />
+              <SidebarItem 
+                icon={Settings} 
+                label="System Settings" 
+                href="/admin/settings" 
+                active={isActive(path, '/admin/settings')} 
+              />
+            </div>
+          </div>
+          <div className="px-4 py-2">
+            <SidebarItem 
+              icon={Home} 
+              label="Back to Dashboard" 
+              href="/dashboard" 
+              active={false} 
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // For regular routes, show the appropriate sidebar based on user role
   return (
     <div className={cn("pb-12 w-64 border-r", className)}>
       <div className="space-y-4 py-4">
@@ -174,10 +240,10 @@ export function Sidebar({ className }: SidebarProps) {
               />
               {isAdmin && (
                 <SidebarItem 
-                  icon={Briefcase} 
-                  label="Administration" 
+                  icon={ShieldAlert} 
+                  label="Admin Console" 
                   href="/admin" 
-                  active={isActive(path, '/admin', true)} 
+                  active={false} 
                 />
               )}
             </div>

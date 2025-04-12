@@ -52,26 +52,28 @@ export function AdminBreadcrumb({ items = [] }: AdminBreadcrumbProps) {
   const breadcrumbItems = getBreadcrumbItems();
 
   return (
-    <div className="flex items-center space-x-2 text-sm mb-4">
+    <div className="flex items-center space-x-2 text-sm mb-6">
       <Button
         variant="ghost"
         size="sm"
         className="h-7 gap-1 px-2"
-        onClick={() => navigate('/admin')}
+        onClick={() => navigate('/dashboard')}
       >
         <Home className="h-3.5 w-3.5" />
-        <span>Admin</span>
+        <span>Dashboard</span>
       </Button>
       
-      {breadcrumbItems.slice(1).map((item, index) => (
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      
+      {breadcrumbItems.map((item, index) => (
         <React.Fragment key={item.path}>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          {index > 0 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
           <Button
             variant="ghost"
             size="sm"
             className="h-7 px-2"
             onClick={() => navigate(item.path)}
-            disabled={index === breadcrumbItems.length - 2}
+            disabled={index === breadcrumbItems.length - 1}
           >
             {item.label}
           </Button>
