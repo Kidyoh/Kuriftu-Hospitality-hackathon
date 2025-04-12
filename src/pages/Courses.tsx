@@ -49,8 +49,7 @@ export default function Courses() {
       const { data: coursesData, error: coursesError } = await supabase
         .from('courses')
         .select('*')
-        .eq('status', 'Published')
-        .order('created_at', { ascending: false });
+        .eq('status', 'Published');
         
       if (coursesError) {
         console.error('Error fetching courses:', coursesError);
@@ -144,8 +143,8 @@ export default function Courses() {
   };
   
   const switchToAllCoursesTab = () => {
-    const allTabTrigger = document.querySelector('button[value="all"]') as HTMLButtonElement | null;
-    if (allTabTrigger) {
+    const allTabTrigger = document.querySelector('button[value="all"]');
+    if (allTabTrigger instanceof HTMLButtonElement) {
       allTabTrigger.click();
     }
   };
