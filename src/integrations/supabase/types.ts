@@ -9,7 +9,224 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      courses: {
+        Row: {
+          created_at: string
+          description: string | null
+          difficulty_level: string | null
+          estimated_hours: number | null
+          id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          difficulty_level?: string | null
+          estimated_hours?: number | null
+          id?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          difficulty_level?: string | null
+          estimated_hours?: number | null
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      learning_paths: {
+        Row: {
+          created_at: string
+          department: string | null
+          description: string | null
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: []
+      }
+      onboarding_progress: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          id: string
+          step: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          id?: string
+          step: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          id?: string
+          step?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      path_courses: {
+        Row: {
+          course_id: string
+          id: string
+          path_id: string
+          sequence_order: number
+        }
+        Insert: {
+          course_id: string
+          id?: string
+          path_id: string
+          sequence_order: number
+        }
+        Update: {
+          course_id?: string
+          id?: string
+          path_id?: string
+          sequence_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "path_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "path_courses_path_id_fkey"
+            columns: ["path_id"]
+            isOneToOne: false
+            referencedRelation: "learning_paths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          department: string | null
+          experience_level: string | null
+          first_name: string
+          id: string
+          joined_at: string
+          last_name: string
+          onboarding_completed: boolean
+          phone: string | null
+          position: string | null
+          role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          avatar_url?: string | null
+          department?: string | null
+          experience_level?: string | null
+          first_name: string
+          id: string
+          joined_at?: string
+          last_name: string
+          onboarding_completed?: boolean
+          phone?: string | null
+          position?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          avatar_url?: string | null
+          department?: string | null
+          experience_level?: string | null
+          first_name?: string
+          id?: string
+          joined_at?: string
+          last_name?: string
+          onboarding_completed?: boolean
+          phone?: string | null
+          position?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: []
+      }
+      skill_assessments: {
+        Row: {
+          completed_at: string
+          id: string
+          score: number | null
+          skill_name: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          score?: number | null
+          skill_name: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          score?: number | null
+          skill_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_courses: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          course_id: string
+          id: string
+          progress: number
+          started_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          course_id: string
+          id?: string
+          progress?: number
+          started_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          course_id?: string
+          id?: string
+          progress?: number
+          started_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +235,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "manager" | "staff" | "trainee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +350,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "manager", "staff", "trainee"],
+    },
   },
 } as const

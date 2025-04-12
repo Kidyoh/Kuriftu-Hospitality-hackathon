@@ -1,13 +1,15 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   BookOpen, GraduationCap, BarChart2, 
-  Trophy, Users, FileText, ChevronsRight,
-  Home, Settings, HelpCircle
+  Trophy, Users, FileText,
+  Home, Settings, HelpCircle,
+  Briefcase, User, LineChart
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -38,8 +40,13 @@ interface SidebarProps {
 }
 
 export function Sidebar({ className }: SidebarProps) {
-  // Get current path for active state
-  const path = window.location.pathname;
+  const location = useLocation();
+  const { profile } = useAuth();
+  const path = location.pathname;
+  const role = profile?.role;
+  
+  const isAdmin = role === 'admin';
+  const isManager = role === 'manager' || isAdmin;
   
   return (
     <div className={cn("pb-12", className)}>
@@ -69,12 +76,42 @@ export function Sidebar({ className }: SidebarProps) {
             />
             <SidebarItem 
               icon={BarChart2} 
-              label="Progress" 
+              label="My Progress" 
               href="/progress" 
               active={path === '/progress'} 
             />
           </div>
         </div>
+        
+        {isManager && (
+          <div className="px-4 py-2">
+            <h2 className="mb-2 px-2 text-lg font-semibold tracking-tight">
+              Management
+            </h2>
+            <div className="space-y-1">
+              <SidebarItem 
+                icon={Users} 
+                label="Team Members" 
+                href="/team" 
+                active={path === '/team'} 
+              />
+              <SidebarItem 
+                icon={LineChart} 
+                label="Analytics" 
+                href="/analytics" 
+                active={path === '/analytics'} 
+              />
+              {isAdmin && (
+                <SidebarItem 
+                  icon={Briefcase} 
+                  label="Administration" 
+                  href="/admin" 
+                  active={path === '/admin'} 
+                />
+              )}
+            </div>
+          </div>
+        )}
         
         <div className="px-4 py-2">
           <h2 className="mb-2 px-2 text-lg font-semibold tracking-tight">
@@ -88,12 +125,6 @@ export function Sidebar({ className }: SidebarProps) {
               active={path === '/achievements'} 
             />
             <SidebarItem 
-              icon={Users} 
-              label="Mentorship" 
-              href="/mentorship" 
-              active={path === '/mentorship'} 
-            />
-            <SidebarItem 
               icon={FileText} 
               label="Resources" 
               href="/resources" 
@@ -104,6 +135,12 @@ export function Sidebar({ className }: SidebarProps) {
         
         <div className="px-4 py-2">
           <div className="space-y-1">
+            <SidebarItem 
+              icon={User} 
+              label="Profile" 
+              href="/profile" 
+              active={path === '/profile'} 
+            />
             <SidebarItem 
               icon={Settings} 
               label="Settings" 
