@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,7 @@ import AdminLearningPaths from "./pages/AdminLearningPaths";
 import AdminQuizzes from "./pages/AdminQuizzes";
 import AdminQuizQuestions from "./pages/AdminQuizQuestions";
 import CourseLessons from "./pages/CourseLessons";
+import AdminCourseLessons from "./pages/AdminCourseLessons";
 import TakeQuiz from "./pages/TakeQuiz";
 
 const queryClient = new QueryClient({
@@ -147,7 +147,7 @@ const App = () => (
               
               <Route path="/admin/courses/:courseId/lessons" element={
                 <Layout requiredRoles={['admin']} showSidebar={true}>
-                  <CourseLessons />
+                  <AdminCourseLessons />
                 </Layout>
               } />
               

@@ -1,20 +1,22 @@
-
 import React from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 interface LayoutProps {
   children: React.ReactNode;
   requiredRoles?: Array<'admin' | 'manager' | 'staff' | 'trainee'>;
   showSidebar?: boolean;
+  customHeader?: React.ReactNode;
 }
 
 export function Layout({ 
   children, 
   requiredRoles = [],
-  showSidebar = true 
+  showSidebar = true,
+  customHeader
 }: LayoutProps) {
   const { profile, isLoading, hasRole } = useAuth();
   const location = useLocation();
@@ -30,7 +32,7 @@ export function Layout({
   }
 
   // Check if user has required role access
-  if (profile && requiredRoles.length > 0 && !requiredRoles.some(role => hasRole([role]))) {
+  if (profile && requiredRoles.length > 0 && !hasRole(requiredRoles)) {
     // Redirect unauthorized users to the dashboard
     return <Navigate to="/" replace />;
   }
@@ -51,21 +53,25 @@ export function Layout({
     }
   };
 
-  // Check if current path is admin path
-  const isAdminPath = location.pathname.startsWith('/admin');
+  // Check if the sidebar should be shown
+  // Always show sidebar for admin pages that need it (course management, lessons, etc.)
+  const isAdminCoursesPath = location.pathname.startsWith('/admin/courses');
+  const isAdminLearningPath = location.pathname.startsWith('/admin/learning-paths');
   
-  // For admin pages with nested routes (like /admin/courses), hide the sidebar
-  const showAdminSidebar = isAdminPath && location.pathname === '/admin';
-  
-  // Determine if we should show the sidebar based on both props and current path
-  const showSidebarFinal = showSidebar && (showAdminSidebar || !isAdminPath);
+  // Determine if we should show the sidebar
+  const shouldShowSidebar = showSidebar && (
+    !location.pathname.startsWith('/admin') || 
+    location.pathname === '/admin' || 
+    isAdminCoursesPath || 
+    isAdminLearningPath
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      {customHeader || <Header />}
       <div className="flex-1 flex">
-        {showSidebarFinal && <Sidebar />}
-        <main className={`flex-1 ${getBgColor()} overflow-auto p-4`}>
+        {shouldShowSidebar && <Sidebar />}
+        <main className={cn(`flex-1 ${getBgColor()} overflow-auto p-4`)}>
           {children}
         </main>
       </div>
