@@ -54,7 +54,7 @@ Kuriftu is committed to setting new standards in African hospitality. This platf
 | Styling       | Tailwind CSS + shadcn/ui      |
 | Backend       | Supabase (PostgreSQL, Auth, Storage) |
 | AI Services   | OpenAI API (quiz generation)  |
-| Hosting       | Lovable (temp); planned cloud/VPS |
+| Hosting       | Vercel; planned cloud/VPS |
 
 ---
 
