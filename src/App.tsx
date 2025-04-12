@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import StorageInit from "./components/storage/StorageInit";
 
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
@@ -38,6 +39,7 @@ const App = () => (
     <TooltipProvider>
       <BrowserRouter>
         <AuthProvider>
+          <StorageInit />
           <Toaster />
           <Sonner />
           <Routes>
@@ -132,7 +134,7 @@ const App = () => (
                 </Layout>
               } />
               
-              {/* Admin routes - All using the same layout with consistent sidebar */}
+              {/* Admin routes */}
               <Route path="/admin" element={
                 <Layout requiredRoles={['admin']}>
                   <AdminDashboard />
@@ -140,38 +142,38 @@ const App = () => (
               } />
               
               <Route path="/admin/courses" element={
-                <Layout requiredRoles={['admin']} showSidebar={true}>
+                <Layout requiredRoles={['admin']}>
                   <AdminCourseManagement />
                 </Layout>
               } />
               
               <Route path="/admin/courses/:courseId/lessons" element={
-                <Layout requiredRoles={['admin']} showSidebar={true}>
+                <Layout requiredRoles={['admin']}>
                   <CourseLessons />
                 </Layout>
               } />
               
               <Route path="/admin/courses/:courseId/quizzes" element={
-                <Layout requiredRoles={['admin']} showSidebar={true}>
+                <Layout requiredRoles={['admin']}>
                   <AdminQuizzes />
                 </Layout>
               } />
               
               <Route path="/admin/courses/:courseId/quizzes/:quizId/questions" element={
-                <Layout requiredRoles={['admin']} showSidebar={true}>
+                <Layout requiredRoles={['admin']}>
                   <AdminQuizQuestions />
                 </Layout>
               } />
               
               <Route path="/admin/learning-paths" element={
-                <Layout requiredRoles={['admin']} showSidebar={true}>
+                <Layout requiredRoles={['admin']}>
                   <AdminLearningPaths />
                 </Layout>
               } />
               
-              {/* Admin routes for user management and analytics (to be implemented) */}
+              {/* Admin routes for user management and analytics */}
               <Route path="/admin/users" element={
-                <Layout requiredRoles={['admin']} showSidebar={true}>
+                <Layout requiredRoles={['admin']}>
                   <div className="container py-6">
                     <h1 className="text-2xl font-bold mb-4">User Management</h1>
                     <p>Manage users and permissions.</p>
@@ -180,7 +182,7 @@ const App = () => (
               } />
               
               <Route path="/admin/analytics" element={
-                <Layout requiredRoles={['admin']} showSidebar={true}>
+                <Layout requiredRoles={['admin']}>
                   <div className="container py-6">
                     <h1 className="text-2xl font-bold mb-4">Admin Analytics</h1>
                     <p>View detailed analytics and reports.</p>
@@ -189,7 +191,7 @@ const App = () => (
               } />
               
               <Route path="/admin/settings" element={
-                <Layout requiredRoles={['admin']} showSidebar={true}>
+                <Layout requiredRoles={['admin']}>
                   <div className="container py-6">
                     <h1 className="text-2xl font-bold mb-4">System Settings</h1>
                     <p>Configure system-wide settings.</p>

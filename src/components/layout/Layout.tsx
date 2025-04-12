@@ -54,11 +54,8 @@ export function Layout({
   // Check if current path is admin path
   const isAdminPath = location.pathname.startsWith('/admin');
   
-  // For admin pages with nested routes (like /admin/courses), hide the sidebar
-  const showAdminSidebar = isAdminPath && location.pathname === '/admin';
-  
-  // Determine if we should show the sidebar based on both props and current path
-  const showSidebarFinal = showSidebar && (showAdminSidebar || !isAdminPath);
+  // Determine if we should show the sidebar
+  const showSidebarFinal = showSidebar && (profile != null);
 
   return (
     <div className="min-h-screen flex flex-col">
