@@ -43,6 +43,8 @@ import {
   ensureCreateUserQuizResultsRPC
 } from '@/utils/dbUtils';
 import { checkUserAchievements, awardPoints } from '@/utils/incentivesUtils';
+import { UserActivityChart } from '@/components/analytics/UserActivityChart';
+import { CourseAIChat } from '@/components/chat/CourseAIChat';
 
 interface Course {
   id: string;
@@ -1102,6 +1104,16 @@ export default function CourseDetail() {
               )}
             </TabsContent>
           </Tabs>
+          
+          {/* Add CourseAIChat after the Tabs section */}
+          <div className="mt-8">
+            <CourseAIChat
+              courseTitle={course.title}
+              courseDescription={course.description || ''}
+              lessons={lessons}
+              quizzes={quizzes}
+            />
+          </div>
         </div>
         
         {/* Sidebar */}
