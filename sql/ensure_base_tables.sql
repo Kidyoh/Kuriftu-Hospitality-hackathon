@@ -127,6 +127,183 @@ CREATE TABLE IF NOT EXISTS public.user_lessons (
     UNIQUE(user_id, lesson_id)
 );
 
+-- User Activity Log Table
+CREATE TABLE IF NOT EXISTS public.user_activity_log (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  activity_type TEXT NOT NULL,
+  course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
+  lesson_id UUID REFERENCES public.course_lessons(id) ON DELETE CASCADE,
+  quiz_id UUID REFERENCES public.quizzes(id) ON DELETE CASCADE,
+  duration INTEGER, -- Duration in seconds
+  progress INTEGER, -- Progress percentage
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  metadata JSONB DEFAULT '{}'::jsonb,
+  CONSTRAINT valid_activity_type CHECK (
+    activity_type IN ('course_view', 'lesson_view', 'lesson_complete', 'quiz_attempt', 'quiz_complete')
+  )
+);
+
+-- Create index for faster queries
+CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON public.user_activity_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_activity_created_at ON public.user_activity_log(created_at);
+
+-- Function to log user activity
+CREATE OR REPLACE FUNCTION log_user_activity()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_activity_log (
+    user_id,
+    activity_type,
+    course_id,
+    lesson_id,
+    quiz_id,
+    progress,
+    metadata
+  )
+  VALUES (
+    NEW.user_id,
+    TG_ARGV[0], -- activity_type passed as trigger argument
+    NEW.course_id,
+    NEW.lesson_id,
+    NEW.quiz_id,
+    NEW.progress,
+    jsonb_build_object(
+      'previous_progress', OLD.progress,
+      'current_progress', NEW.progress,
+      'timestamp', NOW()
+    )
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Triggers for logging activities
+DROP TRIGGER IF EXISTS log_course_progress ON public.user_courses;
+CREATE TRIGGER log_course_progress
+AFTER UPDATE OF progress ON public.user_courses
+FOR EACH ROW
+WHEN (NEW.progress IS DISTINCT FROM OLD.progress)
+EXECUTE FUNCTION log_user_activity('course_view');
+
+DROP TRIGGER IF EXISTS log_lesson_completion ON public.user_lesson_progress;
+CREATE TRIGGER log_lesson_completion
+AFTER UPDATE OF completed ON public.user_lesson_progress
+FOR EACH ROW
+WHEN (NEW.completed IS DISTINCT FROM OLD.completed)
+EXECUTE FUNCTION log_user_activity('lesson_complete');
+
+DROP TRIGGER IF EXISTS log_quiz_attempt ON public.quiz_attempts;
+CREATE TRIGGER log_quiz_attempt
+AFTER INSERT ON public.quiz_attempts
+FOR EACH ROW
+EXECUTE FUNCTION log_user_activity('quiz_attempt');
+
+-- Function to get user analytics
+CREATE OR REPLACE FUNCTION get_user_analytics(p_user_id UUID, p_time_range TEXT DEFAULT 'all')
+RETURNS TABLE (
+  total_courses_enrolled INTEGER,
+  completed_courses INTEGER,
+  in_progress_courses INTEGER,
+  average_course_progress NUMERIC,
+  total_lessons_completed INTEGER,
+  total_quizzes_attempted INTEGER,
+  average_quiz_score NUMERIC,
+  total_time_spent BIGINT,
+  last_activity_date TIMESTAMPTZ,
+  course_distribution JSONB,
+  recent_activities JSONB
+) AS $$
+DECLARE
+  v_start_date TIMESTAMPTZ;
+BEGIN
+  -- Set time range
+  v_start_date := CASE p_time_range
+    WHEN 'week' THEN NOW() - INTERVAL '7 days'
+    WHEN 'month' THEN NOW() - INTERVAL '30 days'
+    WHEN 'year' THEN NOW() - INTERVAL '365 days'
+    ELSE '1970-01-01'::TIMESTAMPTZ
+  END;
+
+  RETURN QUERY
+  WITH course_stats AS (
+    SELECT
+      COUNT(*) as total_enrolled,
+      COUNT(*) FILTER (WHERE progress = 100) as completed,
+      COUNT(*) FILTER (WHERE progress > 0 AND progress < 100) as in_progress,
+      AVG(progress) as avg_progress
+    FROM public.user_courses
+    WHERE user_id = p_user_id
+  ),
+  lesson_stats AS (
+    SELECT
+      COUNT(*) FILTER (WHERE completed = true) as completed_lessons
+    FROM public.user_lesson_progress
+    WHERE user_id = p_user_id
+  ),
+  quiz_stats AS (
+    SELECT
+      COUNT(*) as attempts,
+      AVG(score) as avg_score
+    FROM public.quiz_attempts
+    WHERE user_id = p_user_id
+  ),
+  activity_stats AS (
+    SELECT
+      SUM(duration) as total_duration,
+      MAX(created_at) as last_activity,
+      jsonb_agg(
+        jsonb_build_object(
+          'type', activity_type,
+          'timestamp', created_at,
+          'metadata', metadata
+        )
+        ORDER BY created_at DESC
+        LIMIT 10
+      ) as recent_acts
+    FROM public.user_activity_log
+    WHERE user_id = p_user_id
+    AND created_at >= v_start_date
+  ),
+  course_dist AS (
+    SELECT jsonb_object_agg(
+      c.title,
+      jsonb_build_object(
+        'progress', uc.progress,
+        'last_accessed', uc.last_accessed,
+        'completed_lessons', (
+          SELECT COUNT(*)
+          FROM public.user_lesson_progress ulp
+          WHERE ulp.user_id = p_user_id
+          AND ulp.course_id = c.id
+          AND ulp.completed = true
+        )
+      )
+    ) as distribution
+    FROM public.user_courses uc
+    JOIN public.courses c ON c.id = uc.course_id
+    WHERE uc.user_id = p_user_id
+  )
+  SELECT
+    cs.total_enrolled,
+    cs.completed,
+    cs.in_progress,
+    ROUND(cs.avg_progress::numeric, 2),
+    ls.completed_lessons,
+    qs.attempts,
+    ROUND(qs.avg_score::numeric, 2),
+    COALESCE(ast.total_duration, 0),
+    ast.last_activity,
+    cd.distribution,
+    COALESCE(ast.recent_acts, '[]'::jsonb)
+  FROM course_stats cs
+  CROSS JOIN lesson_stats ls
+  CROSS JOIN quiz_stats qs
+  CROSS JOIN activity_stats ast
+  CROSS JOIN course_dist cd;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Enable Row Level Security on all tables
 ALTER TABLE public.achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rewards ENABLE ROW LEVEL SECURITY;

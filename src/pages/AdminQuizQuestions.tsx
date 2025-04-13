@@ -63,14 +63,11 @@ export default function AdminQuizQuestions() {
   
   const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
     question_text: '',
-    question_type: 'multiple_choice',
+    question_type: 'text',
     points: 1
   });
   
-  const [questionOptions, setQuestionOptions] = useState<Partial<QuestionOption>[]>([
-    { option_text: '', is_correct: false, sequence_order: 0 },
-    { option_text: '', is_correct: false, sequence_order: 1 }
-  ]);
+  const [questionOptions, setQuestionOptions] = useState<Partial<QuestionOption>[]>([]);
   
   useEffect(() => {
     if (!quizId) return;
@@ -78,6 +75,9 @@ export default function AdminQuizQuestions() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Clean up any empty options in the database
+        await cleanupEmptyOptions();
+        
         // Fetch quiz details
         const { data: quizData, error: quizError } = await supabase
           .from('quizzes')
@@ -98,15 +98,22 @@ export default function AdminQuizQuestions() {
         if (questionError) throw questionError;
         
         if (questionData) {
-          // For each question, get its options
+          // For each question, get its options only if it's multiple choice
           const questionsWithOptions = await Promise.all(questionData.map(async (q) => {
-            const { data: optionData } = await supabase
-              .from('quiz_options')
-              .select('*')
-              .eq('question_id', q.id)
-              .order('sequence_order', { ascending: true });
-              
-            return { ...q, options: optionData || [] };
+            if (q.question_type === 'multiple_choice') {
+              const { data: optionData } = await supabase
+                .from('quiz_options')
+                .select('*')
+                .eq('question_id', q.id)
+                .order('sequence_order', { ascending: true });
+                
+              // Filter out any options with empty text
+              const validOptions = optionData ? optionData.filter(opt => opt.option_text && opt.option_text.trim() !== '') : [];
+              return { ...q, options: validOptions };
+            }
+            
+            // For text questions, just return empty options array
+            return { ...q, options: [] };
           }));
           
           setQuestions(questionsWithOptions);
@@ -126,6 +133,24 @@ export default function AdminQuizQuestions() {
     
     fetchData();
   }, [quizId]);
+  
+  // Function to clean up any empty options in the database
+  const cleanupEmptyOptions = async () => {
+    try {
+      // Delete any quiz options that have empty text
+      const { error } = await supabase
+        .from('quiz_options')
+        .delete()
+        .eq('option_text', '')
+        .or('option_text.is.null');
+        
+      if (error) {
+        console.error('Error cleaning up empty options:', error);
+      }
+    } catch (err) {
+      console.error('Failed to cleanup empty options:', err);
+    }
+  };
   
   const handleAddOption = () => {
     setQuestionOptions([
@@ -189,7 +214,7 @@ export default function AdminQuizQuestions() {
       return;
     }
     
-    // For multiple choice, verify we have at least one correct answer
+    // We only need to validate options for multiple choice questions
     if (currentQuestion.question_type === 'multiple_choice') {
       // Filter out empty options before validation
       const validOptions = questionOptions.filter(opt => opt.option_text?.trim());
@@ -233,13 +258,12 @@ export default function AdminQuizQuestions() {
         
         questionId = currentQuestion.id;
         
-        // Delete existing options for multiple choice questions
-        if (currentQuestion.question_type === 'multiple_choice') {
-          await supabase
-            .from('quiz_options')
-            .delete()
-            .eq('question_id', questionId);
-        }
+        // For multiple choice questions or when changing from multiple choice to text
+        // Always delete existing options when editing (for multiple choice or type changes)
+        await supabase
+          .from('quiz_options')
+          .delete()
+          .eq('question_id', questionId);
         
         toast({
           title: "Question Updated",
@@ -269,11 +293,11 @@ export default function AdminQuizQuestions() {
         });
       }
       
-      // Create options for multiple choice questions
-      if (currentQuestion.question_type === 'multiple_choice' && questionId) {
+      // ONLY add options if this is explicitly a multiple choice question
+      if (currentQuestion.question_type === 'multiple_choice' && questionId && questionOptions.length > 0) {
         // Filter out empty options and reorder sequence
         const validOptions = questionOptions
-          .filter(opt => opt.option_text?.trim())
+          .filter(opt => opt.option_text && opt.option_text.trim() !== '')
           .map((option, index) => ({
             question_id: questionId,
             option_text: option.option_text?.trim(),
@@ -301,13 +325,21 @@ export default function AdminQuizQuestions() {
       
       // Get options for each question
       const questionsWithOptions = await Promise.all(refreshedQuestions.map(async (q) => {
-        const { data: optionData } = await supabase
-          .from('quiz_options')
-          .select('*')
-          .eq('question_id', q.id)
-          .order('sequence_order', { ascending: true });
-          
-        return { ...q, options: optionData || [] };
+        // Only fetch options for multiple choice questions
+        if (q.question_type === 'multiple_choice') {
+          const { data: optionData } = await supabase
+            .from('quiz_options')
+            .select('*')
+            .eq('question_id', q.id)
+            .order('sequence_order', { ascending: true });
+            
+            // Filter out any options with empty text
+            const validOptions = optionData ? optionData.filter(opt => opt.option_text && opt.option_text.trim() !== '') : [];
+            return { ...q, options: validOptions };
+        }
+        
+        // For text questions, explicitly return empty options array
+        return { ...q, options: [] };
       }));
       
       setQuestions(questionsWithOptions);
@@ -328,25 +360,32 @@ export default function AdminQuizQuestions() {
     setIsEditing(false);
     setCurrentQuestion({
       question_text: '',
-      question_type: 'multiple_choice',
+      question_type: 'text',
       points: 1
     });
-    setQuestionOptions([
-      { option_text: '', is_correct: false, sequence_order: 0 },
-      { option_text: '', is_correct: false, sequence_order: 1 }
-    ]);
+    
+    // Start with empty options array
+    setQuestionOptions([]);
   };
   
   const handleEditQuestion = (question: Question) => {
     setCurrentQuestion(question);
     
-    if (question.question_type === 'multiple_choice' && question.options) {
-      setQuestionOptions(question.options);
+    if (question.question_type === 'multiple_choice') {
+      // For multiple choice questions, set up the options
+      if (!question.options || question.options.length < 2) {
+        // Ensure we have at least 2 options for multiple choice
+        setQuestionOptions([
+          { option_text: '', is_correct: false, sequence_order: 0 },
+          { option_text: '', is_correct: false, sequence_order: 1 }
+        ]);
+      } else {
+        // Use existing options
+        setQuestionOptions(question.options);
+      }
     } else {
-      setQuestionOptions([
-        { option_text: '', is_correct: false, sequence_order: 0 },
-        { option_text: '', is_correct: false, sequence_order: 1 }
-      ]);
+      // For text questions, ensure the options array is empty
+      setQuestionOptions([]);
     }
     
     setIsEditing(true);
@@ -359,11 +398,18 @@ export default function AdminQuizQuestions() {
     }
     
     try {
-      // Delete options first (if any)
-      await supabase
-        .from('quiz_options')
-        .delete()
-        .eq('question_id', id);
+      // Get the question to check if it has options
+      const question = questions.find(q => q.id === id);
+      
+      // Delete options if this is a multiple choice question
+      if (question && question.question_type === 'multiple_choice') {
+        const { error: optionsError } = await supabase
+          .from('quiz_options')
+          .delete()
+          .eq('question_id', id);
+          
+        if (optionsError) throw optionsError;
+      }
       
       // Delete the question
       const { error } = await supabase
@@ -483,7 +529,7 @@ export default function AdminQuizQuestions() {
                 <Plus className="mr-2 h-4 w-4" /> Add Question
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{isEditing ? "Edit Question" : "Create New Question"}</DialogTitle>
                 <DialogDescription>
@@ -518,10 +564,23 @@ export default function AdminQuizQuestions() {
                     </label>
                     <Select
                       value={currentQuestion.question_type}
-                      onValueChange={(value) => setCurrentQuestion({
-                        ...currentQuestion,
-                        question_type: value
-                      })}
+                      onValueChange={(value) => {
+                        setCurrentQuestion({
+                          ...currentQuestion,
+                          question_type: value
+                        });
+                        
+                        // For multiple choice, ensure we have default options
+                        if (value === 'multiple_choice') {
+                          setQuestionOptions([
+                            { option_text: '', is_correct: false, sequence_order: 0 },
+                            { option_text: '', is_correct: false, sequence_order: 1 }
+                          ]);
+                        } else {
+                          // For text questions, clear the options array completely
+                          setQuestionOptions([]);
+                        }
+                      }}
                     >
                       <SelectTrigger id="questionType">
                         <SelectValue placeholder="Select question type" />
@@ -602,6 +661,14 @@ export default function AdminQuizQuestions() {
                   </div>
                 )}
                 
+                {currentQuestion.question_type === 'text' && (
+                  <div className="bg-gray-50 p-3 rounded-md border border-dashed border-gray-300 mt-4">
+                    <p className="text-muted-foreground text-sm italic">
+                      This is a short answer question. Students will type in their response.
+                    </p>
+                  </div>
+                )}
+                
                 <DialogFooter className="pt-4">
                   <Button variant="outline" type="button" onClick={handleDialogClose}>
                     Cancel
@@ -630,7 +697,11 @@ export default function AdminQuizQuestions() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="py-0">
+                          <Badge variant="outline" className={`py-0 ${
+                            question.question_type === 'multiple_choice' 
+                              ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                              : 'bg-purple-50 text-purple-700 border-purple-200'
+                          }`}>
                             {question.question_type === 'multiple_choice' 
                               ? 'Multiple Choice' 
                               : 'Short Answer'}
@@ -686,29 +757,39 @@ export default function AdminQuizQuestions() {
                     </div>
                   </CardHeader>
                   
-                  {question.question_type === 'multiple_choice' && question.options && (
+                  {question.question_type === 'multiple_choice' && question.options && question.options.length > 0 ? (
                     <CardContent className="pt-4">
                       <div className="grid gap-2">
-                        {question.options.map((option, optIdx) => (
-                          <div 
-                            key={option.id} 
-                            className={`flex items-center p-2 rounded-md border ${
-                              option.is_correct ? 'border-green-500 bg-green-50' : 'border-gray-200'
-                            }`}
-                          >
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${
-                              option.is_correct 
-                                ? 'bg-green-500 text-white' 
-                                : 'bg-gray-100'
-                            }`}>
-                              {option.is_correct && <Check className="h-3 w-3" />}
+                        {question.options
+                          .filter(option => option.option_text && option.option_text.trim() !== '')
+                          .map((option, optIdx) => (
+                            <div 
+                              key={option.id} 
+                              className={`flex items-center p-2 rounded-md border ${
+                                option.is_correct ? 'border-green-500 bg-green-50' : 'border-gray-200'
+                              }`}
+                            >
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${
+                                option.is_correct 
+                                  ? 'bg-green-500 text-white' 
+                                  : 'bg-gray-100'
+                              }`}>
+                                {option.is_correct && <Check className="h-3 w-3" />}
+                              </div>
+                              <span>{option.option_text}</span>
                             </div>
-                            <span>{option.option_text}</span>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     </CardContent>
-                  )}
+                  ) : question.question_type === 'text' ? (
+                    <CardContent className="pt-4">
+                      <div className="bg-gray-50 p-3 rounded-md border border-dashed border-gray-300">
+                        <p className="text-muted-foreground text-sm italic">
+                          Short answer question - students will enter free text response
+                        </p>
+                      </div>
+                    </CardContent>
+                  ) : null}
                 </Card>
               ))
             ) : (

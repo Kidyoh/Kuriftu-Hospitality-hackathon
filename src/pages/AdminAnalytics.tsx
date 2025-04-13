@@ -19,6 +19,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Loader2, Download, Brain, FileDown } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { generateAIAnalysis, generateAnalyticsReport, type AnalyticsData } from '@/utils/analyticsUtils';
+import { UserAnalytics } from '@/components/admin/UserAnalytics';
 
 // Common interfaces for analytics data
 interface CourseStatistics {
@@ -73,6 +84,11 @@ export default function AdminAnalytics() {
     averageCompletionRate: 0,
   });
   const [timeRange, setTimeRange] = useState('last30days');
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -86,6 +102,7 @@ export default function AdminAnalytics() {
         fetchCourseStatistics(),
         fetchUserStatistics(),
         fetchOverallStatistics(),
+        fetchUsers(),
       ]);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
@@ -290,6 +307,81 @@ export default function AdminAnalytics() {
     }
   };
 
+  const handleGenerateAIAnalysis = async () => {
+    try {
+      setIsGeneratingAi(true);
+      setIsAiDialogOpen(true);
+      
+      const analyticsData: AnalyticsData = {
+        userStats,
+        courseStats,
+        overallStats
+      };
+      
+      const analysis = await generateAIAnalysis(analyticsData);
+      setAiAnalysis(analysis);
+    } catch (error) {
+      console.error('Error generating AI analysis:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to generate AI analysis. Please try again later.',
+      });
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
+  const handleDownloadReport = async (format: 'pdf' | 'markdown' = 'markdown') => {
+    try {
+      setIsDownloading(true);
+      
+      const analyticsData: AnalyticsData = {
+        userStats,
+        courseStats,
+        overallStats
+      };
+      
+      const report = await generateAnalyticsReport(analyticsData);
+      
+      if (format === 'markdown') {
+        // Create blob and download
+        const blob = new Blob([report as string], { type: 'text/markdown;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `analytics_report_${new Date().toISOString().split('T')[0]}.md`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // For PDF, the report is already a Blob or string
+        const link = document.createElement('a');
+        const blob = typeof report === 'string' 
+          ? new Blob([report], { type: 'application/pdf' })
+          : report as Blob;
+        link.href = URL.createObjectURL(blob);
+        link.download = `analytics_report_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Report downloaded successfully',
+      });
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to download report. Please try again later.',
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   // Access control - only allow admins
   if (!hasRole(['admin'])) {
     return (
@@ -389,215 +481,371 @@ export default function AdminAnalytics() {
     </div>
   );
 
+  const fetchUsers = async () => {
+    try {
+      const { data: userData, error: usersError } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (usersError) throw usersError;
+
+      setUsers(userData);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+  };
+
   return (
     <div className="container py-6">
       <div className="flex flex-col space-y-6">
-        <div className="flex flex-col space-y-2">
-          <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-          <p className="text-muted-foreground">
-            Comprehensive analytics and reporting for the Learning Village platform.
-          </p>
+        <div className="flex justify-between items-center">
+          <div className="flex flex-col space-y-2">
+            <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+            <p className="text-muted-foreground">
+              Comprehensive analytics and reporting for the Learning Village platform.
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleGenerateAIAnalysis()}
+              disabled={isGeneratingAi || loading}
+            >
+              {isGeneratingAi ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Brain className="h-4 w-4 mr-2" />
+              )}
+              AI Analysis
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={() => handleDownloadReport('pdf')}
+              disabled={isDownloading || loading}
+            >
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <FileDown className="h-4 w-4 mr-2" />
+              )}
+              Export as PDF
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => handleDownloadReport('markdown')}
+              disabled={isDownloading || loading}
+            >
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <FileDown className="h-4 w-4 mr-2" />
+              )}
+              Export as Markdown
+            </Button>
+          </div>
         </div>
 
-        <div className="flex justify-between items-center">
-          <Tabs defaultValue="overview" className="w-full">
-            <div className="flex justify-between items-center mb-6">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="courses">Courses</TabsTrigger>
-                <TabsTrigger value="users">Users</TabsTrigger>
-              </TabsList>
+        <div className="flex flex-col space-y-6">
+          <div className="flex flex-col space-y-2">
+            <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+            <p className="text-muted-foreground">
+              Comprehensive analytics and reporting for the Learning Village platform.
+            </p>
+          </div>
 
-              <div className="flex items-center gap-2">
-                <Select value={timeRange} onValueChange={setTimeRange}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select time range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="last7days">Last 7 days</SelectItem>
-                    <SelectItem value="last30days">Last 30 days</SelectItem>
-                    <SelectItem value="last90days">Last 90 days</SelectItem>
-                    <SelectItem value="lastYear">Last year</SelectItem>
-                    <SelectItem value="allTime">All time</SelectItem>
-                  </SelectContent>
-                </Select>
+          <div className="flex justify-between items-center">
+            <Tabs defaultValue="overview" className="w-full">
+              <div className="flex justify-between items-center mb-6">
+                <TabsList>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="courses">Courses</TabsTrigger>
+                  <TabsTrigger value="users">Users</TabsTrigger>
+                </TabsList>
 
-                <Button variant="outline" onClick={() => fetchAnalyticsData()}>
-                  Refresh Data
-                </Button>
-              </div>
-            </div>
+                <div className="flex items-center gap-2">
+                  <Select value={timeRange} onValueChange={setTimeRange}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select time range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="last7days">Last 7 days</SelectItem>
+                      <SelectItem value="last30days">Last 30 days</SelectItem>
+                      <SelectItem value="last90days">Last 90 days</SelectItem>
+                      <SelectItem value="lastYear">Last year</SelectItem>
+                      <SelectItem value="allTime">All time</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-            <TabsContent value="overview" className="space-y-6">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Users
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{userStats.totalUsers}</div>
-                    <p className="text-xs text-muted-foreground">
-                      +{userStats.newUsersThisMonth} this month
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Active Users
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{userStats.activeUsers}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {((userStats.activeUsers / userStats.totalUsers) * 100).toFixed(1)}% of total users
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Courses
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{overallStats.totalCourses}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {overallStats.totalLessons} total lessons
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Average Completion
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{overallStats.averageCompletionRate}%</div>
-                    <p className="text-xs text-muted-foreground">
-                      Across all courses
-                    </p>
-                  </CardContent>
-                </Card>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDownloadReport('pdf')}
+                    disabled={isDownloading || loading}
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <FileDown className="h-4 w-4 mr-2" />
+                    )}
+                    Export as PDF
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDownloadReport('markdown')}
+                    disabled={isDownloading || loading}
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <FileDown className="h-4 w-4 mr-2" />
+                    )}
+                    Export as Markdown
+                  </Button>
+
+                  <Button variant="outline" onClick={() => fetchAnalyticsData()}>
+                    Refresh Data
+                  </Button>
+                </div>
               </div>
 
-              {/* Charts */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User Distribution</CardTitle>
-                    <CardDescription>
-                      Breakdown of users by role
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <RoleDistributionChart />
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Popular Courses</CardTitle>
-                    <CardDescription>
-                      Top courses by enrollment
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <CourseEnrollmentChart />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+              <TabsContent value="overview" className="space-y-6">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Total Users
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{userStats.totalUsers}</div>
+                      <p className="text-xs text-muted-foreground">
+                        +{userStats.newUsersThisMonth} this month
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Active Users
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{userStats.activeUsers}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {((userStats.activeUsers / userStats.totalUsers) * 100).toFixed(1)}% of total users
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Total Courses
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{overallStats.totalCourses}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {overallStats.totalLessons} total lessons
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        Average Completion
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{overallStats.averageCompletionRate}%</div>
+                      <p className="text-xs text-muted-foreground">
+                        Across all courses
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
 
-            <TabsContent value="courses" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Course Completion Rates</CardTitle>
-                    <CardDescription>
-                      Percentage of users who completed each course
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <CompletionRateChart />
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Course Performance</CardTitle>
-                    <CardDescription>
-                      Engagement metrics for all courses
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-3">Course</th>
-                          <th className="text-center p-3">Enrollments</th>
-                          <th className="text-center p-3">Completion</th>
-                          <th className="text-center p-3">Avg. Score</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {courseStats.map(course => (
-                          <tr key={course.id} className="border-b hover:bg-muted/50">
-                            <td className="p-3 truncate max-w-40" title={course.title}>
-                              {course.title}
-                            </td>
-                            <td className="text-center p-3">{course.enrollments}</td>
-                            <td className="text-center p-3">{course.completionRate}%</td>
-                            <td className="text-center p-3">{course.averageScore}%</td>
+                {/* Charts */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Distribution</CardTitle>
+                      <CardDescription>
+                        Breakdown of users by role
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <RoleDistributionChart />
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Popular Courses</CardTitle>
+                      <CardDescription>
+                        Top courses by enrollment
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <CourseEnrollmentChart />
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="courses" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Course Completion Rates</CardTitle>
+                      <CardDescription>
+                        Percentage of users who completed each course
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <CompletionRateChart />
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Course Performance</CardTitle>
+                      <CardDescription>
+                        Engagement metrics for all courses
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-3">Course</th>
+                            <th className="text-center p-3">Enrollments</th>
+                            <th className="text-center p-3">Completion</th>
+                            <th className="text-center p-3">Avg. Score</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+                        </thead>
+                        <tbody>
+                          {courseStats.map(course => (
+                            <tr key={course.id} className="border-b hover:bg-muted/50">
+                              <td className="p-3 truncate max-w-40" title={course.title}>
+                                {course.title}
+                              </td>
+                              <td className="text-center p-3">{course.enrollments}</td>
+                              <td className="text-center p-3">{course.completionRate}%</td>
+                              <td className="text-center p-3">{course.averageScore}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
 
-            <TabsContent value="users" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User Activity</CardTitle>
-                    <CardDescription>
-                      Active users over time
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[300px] flex items-center justify-center bg-muted/20 rounded-md">
-                      {/* Placeholder for user activity chart */}
-                      <p className="text-muted-foreground">User activity chart would be displayed here</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User Roles</CardTitle>
-                    <CardDescription>
-                      Distribution of users by role
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <RoleDistributionChart />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="users">
+                <div className="grid grid-cols-1 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Overview</CardTitle>
+                      <CardDescription>
+                        Overview of user statistics and role distribution
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">User Statistics</h3>
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                              <span>Total Users</span>
+                              <span className="font-medium">{userStats.totalUsers}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span>Active Users</span>
+                              <span className="font-medium">{userStats.activeUsers}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span>New Users This Month</span>
+                              <span className="font-medium">{userStats.newUsersThisMonth}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Role Distribution</h3>
+                          <RoleDistributionChart />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Details</CardTitle>
+                      <CardDescription>
+                        Detailed analytics for individual users
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <UserAnalytics users={users} />
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </div>
+
+      <Dialog open={isAiDialogOpen} onOpenChange={setIsAiDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>AI Analysis Report</DialogTitle>
+            <DialogDescription>
+              Comprehensive analysis of your learning platform's performance
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
+            {isGeneratingAi ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="ml-2">Generating analysis...</span>
+              </div>
+            ) : (
+              <div className="whitespace-pre-wrap">{aiAnalysis}</div>
+            )}
+          </ScrollArea>
+          
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsAiDialogOpen(false)}>
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                const blob = new Blob([aiAnalysis], { type: 'text/plain;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `ai_analysis_${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              disabled={!aiAnalysis}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Analysis
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
