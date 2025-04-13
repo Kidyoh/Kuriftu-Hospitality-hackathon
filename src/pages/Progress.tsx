@@ -12,13 +12,6 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
-} from '@/components/ui/accordion';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
@@ -27,15 +20,87 @@ import { CheckCircle, XCircle, Clock, Award, BookOpen, PieChart } from 'lucide-r
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
+import { 
+  Box, 
+  Container, 
+  Typography, 
+  LinearProgress, 
+  Chip, 
+  CircularProgress, 
+  Alert,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Theme
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+
+// Styled Accordion for consistent styling
+const StyledAccordion = styled(Accordion)(({ theme }: { theme: Theme }) => ({
+  marginBottom: theme.spacing(2),
+  '&:before': {
+    display: 'none',
+  },
+}));
 
 interface ProgressData {
-  courses: CourseProgress[];
+  courses: Array<{
+    courses: {
+      title: string;
+      description: string;
+      difficulty_level: string;
+      category: string;
+      estimated_hours: number;
+    };
+    lessonStats: {
+      total: number;
+      completed: number;
+      inProgress: number;
+      averageProgress: number;
+      lessons: Array<{
+        id: string;
+        title: string;
+        progress: number;
+        completed: boolean;
+        completedAt: string | null;
+        startedAt: string | null;
+        sequenceOrder: number;
+      }>;
+    };
+    quizStats: {
+      total: number;
+      passed: number;
+      averageScore: number;
+      perfectScores: number;
+      quizzes: Array<{
+        id: string;
+        title: string;
+        score: number;
+        passed: boolean;
+        completedAt: string | null;
+        passingScore: number;
+      }>;
+    };
+  }>;
   quizStats: {
     total: number;
     passed: number;
+    perfectScores: number;
     averageScore: number;
   };
+  achievementStats: {
+    total: number;
+    completed: number;
+    in_progress: number;
+    completion_percentage: number;
+    total_points_earned: number;
+  };
   overallProgress: number;
+  lastUpdated: string;
 }
 
 interface CourseProgress {
@@ -49,7 +114,6 @@ interface CourseProgress {
     id: string;
     title: string;
     description: string;
-    image_url: string;
     difficulty_level: string;
   };
   lessonStats: {
@@ -78,6 +142,7 @@ export default function Progress() {
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const [courseLessons, setCourseLessons] = useState<Record<string, Lesson[]>>({});
   const [updatingLessonId, setUpdatingLessonId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile?.id) {
@@ -96,20 +161,16 @@ export default function Progress() {
     
     try {
       setIsLoading(true);
-      const result = await getUserProgressSummary(profile.id);
+      const data = await getUserProgressSummary(profile.id);
       
-      if ('error' in result) {
-        throw result.error;
+      if ('error' in data) {
+        throw new Error('Failed to fetch progress data');
       }
       
-      setProgressData(result as ProgressData);
-    } catch (error) {
-      console.error('Error fetching progress data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load your progress data. Please try again.",
-        variant: "destructive"
-      });
+      setProgressData(data as ProgressData);
+    } catch (err) {
+      setError('Failed to load progress data. Please try again later.');
+      console.error('Error fetching progress:', err);
     } finally {
       setIsLoading(false);
     }
@@ -208,11 +269,6 @@ export default function Progress() {
       setUpdatingLessonId(null);
     }
   };
-  
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
-  };
 
   const renderLoading = () => (
     <div className="space-y-6">
@@ -229,10 +285,17 @@ export default function Progress() {
   
   if (isLoading) {
     return (
-      <div className="container py-6">
-        <h1 className="text-2xl font-bold mb-6">My Progress</h1>
-        {renderLoading()}
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <Alert severity="error">{error}</Alert>
+      </Container>
     );
   }
   
@@ -257,226 +320,206 @@ export default function Progress() {
   }
 
   return (
-    <div className="container py-6">
-      <h1 className="text-2xl font-bold mb-2">My Progress</h1>
-      <p className="text-muted-foreground mb-6">Track and update your learning progress</p>
-      
-      <div className="grid gap-6 mb-6 md:grid-cols-3">
-        {/* Overall progress card */}
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Overall Progress Summary */}
+      <Box mb={4}>
+        <Typography variant="h4" gutterBottom>
+          Learning Progress
+        </Typography>
+        <Box display="flex" flexWrap="wrap" sx={{ mx: -1.5 }}>
+          <Box width={{ xs: '100%', md: '25%' }} p={1.5}>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center">
-              <PieChart className="h-5 w-5 mr-2" />
+              <CardContent>
+                <Typography color="textSecondary" gutterBottom>
               Overall Progress
-            </CardTitle>
-          </CardHeader>
+                </Typography>
+                <Box position="relative" display="inline-flex">
+                  <CircularProgress
+                    variant="determinate"
+                    value={progressData.overallProgress}
+                    size={80}
+                  />
+                  <Box
+                    position="absolute"
+                    top={0}
+                    left={0}
+                    bottom={0}
+                    right={0}
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <Typography variant="body2" component="div" color="textSecondary">
+                      {`${Math.round(progressData.overallProgress)}%`}
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+          <Box width={{ xs: '100%', md: '25%' }} p={1.5}>
+            <Card>
           <CardContent>
-            <div className="text-3xl font-bold text-center my-4">
-              {Math.round(progressData.overallProgress)}%
-            </div>
-            <Progress value={progressData.overallProgress} className="h-2 mb-4" />
-            <p className="text-sm text-muted-foreground text-center">
-              Across {progressData.courses.length} course{progressData.courses.length !== 1 ? 's' : ''}
-            </p>
+                <Typography color="textSecondary" gutterBottom>
+                  Quiz Performance
+                </Typography>
+                <Typography variant="h5">
+                  {Math.round(progressData.quizStats.averageScore)}%
+                </Typography>
+                <Typography variant="body2">
+                  Passed: {progressData.quizStats.passed}/{progressData.quizStats.total}
+                </Typography>
+                <Typography variant="body2">
+                  Perfect Scores: {progressData.quizStats.perfectScores}
+                </Typography>
           </CardContent>
         </Card>
-        
-        {/* Quiz stats card */}
+          </Box>
+          <Box width={{ xs: '100%', md: '25%' }} p={1.5}>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center">
-              <Award className="h-5 w-5 mr-2" />
-              Quiz Performance
-            </CardTitle>
-          </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Average Score</span>
-                <Badge variant="outline">
-                  {progressData.quizStats.averageScore.toFixed(1)}%
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Quizzes Passed</span>
-                <Badge>
-                  {progressData.quizStats.passed} / {progressData.quizStats.total}
-                </Badge>
-              </div>
-            </div>
+                <Typography color="textSecondary" gutterBottom>
+                  Achievements
+                </Typography>
+                <Typography variant="h5">
+                  {progressData.achievementStats.completed}/{progressData.achievementStats.total}
+                </Typography>
+                <Typography variant="body2">
+                  Points Earned: {progressData.achievementStats.total_points_earned}
+                </Typography>
           </CardContent>
         </Card>
-        
-        {/* Completed courses card */}
+          </Box>
+          <Box width={{ xs: '100%', md: '25%' }} p={1.5}>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center">
-              <CheckCircle className="h-5 w-5 mr-2" />
-              Completed Courses
-            </CardTitle>
-          </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-center my-4">
-              {progressData.courses.filter(c => c.completed).length}
-            </div>
-            <p className="text-sm text-muted-foreground text-center">
-              Out of {progressData.courses.length} enrolled course{progressData.courses.length !== 1 ? 's' : ''}
-            </p>
+                <Typography color="textSecondary" gutterBottom>
+                  Last Updated
+                </Typography>
+                <Typography variant="body1">
+                  {formatDate(progressData.lastUpdated)}
+                </Typography>
           </CardContent>
         </Card>
-      </div>
-      
-      {/* Course progress accordion */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>My Courses</CardTitle>
-          <CardDescription>
-            View and update your progress for each course
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Accordion 
-            type="single" 
-            collapsible 
-            className="w-full"
-            value={expandedCourse || undefined}
-            onValueChange={(value) => setExpandedCourse(value)}
-          >
-            {progressData.courses.map((course) => (
-              <AccordionItem key={course.course_id} value={course.course_id}>
-                <AccordionTrigger className="hover:no-underline py-4">
-                  <div className="flex flex-col items-start text-left">
-                    <div className="font-semibold">{course.courses.title}</div>
-                    <div className="flex items-center text-sm text-muted-foreground mt-1">
-                      <div className="flex items-center mr-4">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Started: {formatDate(course.started_at)}
-                      </div>
-                      <div className="flex items-center">
-                        {course.completed ? (
-                          <>
-                            <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                            Completed
-                          </>
-                        ) : (
-                          <>
-                            <Progress value={course.progress} className="h-2 w-24 mr-2" />
-                            {course.progress}%
-                          </>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Course Progress */}
+      <Box mb={4}>
+        <Typography variant="h5" gutterBottom>
+          Course Progress
+        </Typography>
+        {progressData.courses.map((course) => (
+          <StyledAccordion key={course.courses.title}>
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              aria-controls={`course-${course.courses.title}-content`}
+              id={`course-${course.courses.title}-header`}
+            >
+              <Box sx={{ width: '100%' }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography variant="h6">{course.courses.title}</Typography>
+                  <Box>
+                    <Chip
+                      size="small"
+                      label={course.courses.difficulty_level}
+                      sx={{ mr: 1 }}
+                    />
+                    <Chip
+                      size="small"
+                      label={course.courses.category}
+                    />
+                  </Box>
+                </Box>
+                <Box mt={1}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={course.lessonStats.averageProgress}
+                    sx={{ height: 8, borderRadius: 4 }}
+                  />
+                  <Box display="flex" justifyContent="space-between" mt={1}>
+                    <Typography variant="body2" color="textSecondary">
+                      {`${Math.round(course.lessonStats.averageProgress)}% Complete`}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {`Est. ${course.courses.estimated_hours} hours`}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box display="flex" flexWrap="wrap" sx={{ mx: -1.5 }}>
+                <Box width={{ xs: '100%', md: '50%' }} p={1.5}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Lessons ({course.lessonStats.completed}/{course.lessonStats.total})
+                  </Typography>
+                  {course.lessonStats.lessons
+                    .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
+                    .map((lesson) => (
+                      <Box key={lesson.id} mb={2}>
+                        <Box display="flex" alignItems="center">
+                          {lesson.completed ? (
+                            <CheckCircleIcon color="success" sx={{ mr: 1 }} />
+                          ) : lesson.progress > 0 ? (
+                            <PlayCircleOutlineIcon color="primary" sx={{ mr: 1 }} />
+                          ) : (
+                            <PlayCircleOutlineIcon color="disabled" sx={{ mr: 1 }} />
+                          )}
+                          <Typography variant="body2">
+                            {lesson.title}
+                          </Typography>
+                        </Box>
+                        {lesson.progress > 0 && !lesson.completed && (
+                          <LinearProgress
+                            variant="determinate"
+                            value={lesson.progress}
+                            sx={{ mt: 1, height: 4 }}
+                          />
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="pl-4 pr-6 pb-4">
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium">Progress</span>
-                        <span className="text-sm">{course.progress}%</span>
-                      </div>
-                      <Progress value={course.progress} className="h-2 mb-2" />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Lessons completed: {course.lessonStats.completed}/{course.lessonStats.total}</span>
-                        <span>Last accessed: {formatDate(course.last_accessed)}</span>
-                      </div>
-                    </div>
-                    
-                    <Separator className="my-4" />
-                    
-                    <div className="mb-2">
-                      <h4 className="font-medium mb-2">Manage Lessons Progress</h4>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Drag the slider to update your progress for individual lessons
-                      </p>
-                      
-                      {!courseLessons[course.course_id] ? (
-                        <div className="space-y-4 py-2">
-                          {[1, 2, 3].map(i => (
-                            <Skeleton key={i} className="h-10 w-full" />
-                          ))}
-                        </div>
-                      ) : courseLessons[course.course_id].length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No lessons available for this course</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {courseLessons[course.course_id].map((lesson) => (
-                            <div key={lesson.id} className="space-y-2">
-                              <div className="flex justify-between">
-                                <span className="text-sm">
-                                  {lesson.order_index + 1}. {lesson.title}
-                                </span>
-                                <div className="flex items-center">
-                                  {lesson.completed ? (
-                                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                  ) : lesson.progress > 0 ? (
-                                    <Clock className="h-4 w-4 text-amber-500 mr-2" />
-                                  ) : (
-                                    <XCircle className="h-4 w-4 text-muted-foreground mr-2" />
-                                  )}
-                                  <span className="text-sm">{lesson.progress}%</span>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center gap-3 pl-4">
-                                <Slider
-                                  value={[lesson.progress || 0]}
-                                  max={100}
-                                  step={10}
-                                  disabled={updatingLessonId === lesson.id}
-                                  onValueChange={(values) => {
-                                    if (updatingLessonId) return;
-                                    
-                                    // Temporarily update UI immediately
-                                    setCourseLessons(prev => ({
-                                      ...prev,
-                                      [course.course_id]: prev[course.course_id].map(l => 
-                                        l.id === lesson.id 
-                                          ? { ...l, progress: values[0] }
-                                          : l
-                                      )
-                                    }));
-                                  }}
-                                  onValueCommit={(values) => {
-                                    handleProgressUpdate(lesson.id, course.course_id, values[0]);
-                                  }}
-                                  className="flex-1"
-                                />
-                                
-                                <Button
-                                  variant={lesson.completed ? "outline" : "default"}
-                                  size="sm"
-                                  disabled={updatingLessonId === lesson.id}
-                                  onClick={() => handleProgressUpdate(
-                                    lesson.id, 
-                                    course.course_id, 
-                                    lesson.completed ? 0 : 100
-                                  )}
-                                >
-                                  {lesson.completed ? "Mark Incomplete" : "Mark Complete"}
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-end mt-6">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => navigate(`/courses/${course.course_id}`)}
-                      >
-                        View Course
-                      </Button>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </CardContent>
-      </Card>
-    </div>
+                      </Box>
+                    ))}
+                </Box>
+                <Box width={{ xs: '100%', md: '50%' }} p={1.5}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Quizzes ({course.quizStats.passed}/{course.quizStats.total})
+                  </Typography>
+                  {course.quizStats.quizzes
+                    .sort((a, b) => (b.score || 0) - (a.score || 0))
+                    .map((quiz) => (
+                      <Box key={quiz.id} mb={2}>
+                        <Box display="flex" alignItems="center" justifyContent="space-between">
+                          <Box display="flex" alignItems="center">
+                            {quiz.score === 100 ? (
+                              <EmojiEventsIcon color="primary" sx={{ mr: 1 }} />
+                            ) : quiz.passed ? (
+                              <CheckCircleIcon color="success" sx={{ mr: 1 }} />
+                            ) : (
+                              <CheckCircleIcon color="disabled" sx={{ mr: 1 }} />
+                            )}
+                            <Typography variant="body2">
+                              {quiz.title}
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" color={quiz.passed ? 'success.main' : 'error.main'}>
+                            {quiz.score}%
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                </Box>
+              </Box>
+            </AccordionDetails>
+          </StyledAccordion>
+        ))}
+      </Box>
+    </Container>
   );
+}
+
+// Date formatting function
+function formatDate(dateString: string | null): string {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDateString();
 } 

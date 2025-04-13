@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { WelcomeCard } from '@/components/dashboard/WelcomeCard';
 import { ProgressSection } from '@/components/dashboard/ProgressSection';
@@ -9,7 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Users, BarChart2, Calendar } from 'lucide-react';
+import { BookOpen, Users, BarChart2, Calendar, Award } from 'lucide-react';
+import LoginStreakCard from '@/components/incentives/LoginStreakCard';
 
 export default function Dashboard() {
   const { profile, hasRole } = useAuth();
@@ -145,7 +145,34 @@ export default function Dashboard() {
           
           <div className="space-y-6">
             <ProgressSection />
-            <AchievementSection />
+            <Tabs defaultValue="achievements">
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="achievements">
+                  <Award className="h-4 w-4 mr-2" />
+                  Achievements
+                </TabsTrigger>
+                <TabsTrigger value="streak">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Streak
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="achievements">
+                <AchievementSection />
+                <div className="flex justify-end mt-1">
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    onClick={() => navigate('/achievements')}
+                    className="text-xs"
+                  >
+                    View all achievements
+                  </Button>
+                </div>
+              </TabsContent>
+              <TabsContent value="streak">
+                <LoginStreakCard />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       )}
@@ -158,7 +185,34 @@ export default function Dashboard() {
           
           <div className="space-y-6">
             <ProgressSection />
-            <AchievementSection />
+            <Tabs defaultValue="achievements">
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="achievements">
+                  <Award className="h-4 w-4 mr-2" />
+                  Achievements
+                </TabsTrigger>
+                <TabsTrigger value="streak">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Streak
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="achievements">
+                <AchievementSection />
+                <div className="flex justify-end mt-1">
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    onClick={() => navigate('/achievements')}
+                    className="text-xs"
+                  >
+                    View all achievements
+                  </Button>
+                </div>
+              </TabsContent>
+              <TabsContent value="streak">
+                <LoginStreakCard />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       )}

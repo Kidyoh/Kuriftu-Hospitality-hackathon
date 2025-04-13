@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Menu, Search, UserCircle, Settings, LogOut, ShieldAlert } from 'lucide-react';
+import { Bell, Menu, Search, UserCircle, Settings, LogOut, ShieldAlert, BookOpen } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -42,7 +42,9 @@ export function Header({ title }: HeaderProps) {
 
   // Use the new hasRole function from AuthContext
   const isAdmin = profile && hasRole(['admin']);
-  const isManager = profile && hasRole(['admin', 'manager']);
+  // const isManager = profile && hasRole(['admin', 'manager']);
+  // const isStaff = profile && hasRole(['admin', 'manager', 'staff']);
+  const isTrainee = profile && hasRole(['manager', 'staff', 'trainee']);
 
   // Role-specific color for the avatar border
   const getAvatarBorderClass = () => {
@@ -119,6 +121,19 @@ export function Header({ title }: HeaderProps) {
                 className="mr-2 hidden sm:flex items-center gap-1 border-kuriftu-brown text-kuriftu-brown hover:bg-kuriftu-brown/10"
               >
                 <ShieldAlert className="h-4 w-4" />
+                {t('nav.dashboard')}
+              </Button>
+            )}
+
+          {/*User Quick Access */}
+          {isTrainee && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/dashboard')} 
+                className="mr-2 hidden sm:flex items-center gap-1 border-kuriftu-brown text-kuriftu-brown hover:bg-kuriftu-brown/10"
+              >
+                <BookOpen className="h-4 w-4" />
                 {t('nav.dashboard')}
               </Button>
             )}

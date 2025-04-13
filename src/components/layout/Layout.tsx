@@ -57,13 +57,21 @@ export function Layout({
   // Always show sidebar for admin pages that need it (course management, lessons, etc.)
   const isAdminCoursesPath = location.pathname.startsWith('/admin/courses');
   const isAdminLearningPath = location.pathname.startsWith('/admin/learning-paths');
+  const isAdminUsersPath = location.pathname.startsWith('/admin/users');
+  const isAdminAnalyticsPath = location.pathname.startsWith('/admin/analytics');
+  const isAdminYoutubePath = location.pathname.startsWith('/admin/youtube-settings');
+  const isAdminSettingsPath = location.pathname.startsWith('/admin/settings');
   
   // Determine if we should show the sidebar
   const shouldShowSidebar = showSidebar && (
     !location.pathname.startsWith('/admin') || 
     location.pathname === '/admin' || 
     isAdminCoursesPath || 
-    isAdminLearningPath
+    isAdminLearningPath ||
+    isAdminUsersPath ||
+    isAdminAnalyticsPath ||
+    isAdminYoutubePath ||
+    isAdminSettingsPath
   );
 
   return (

@@ -78,6 +78,24 @@ npm install
 ```bash
 npm run dev
 ```
+
+### 4. Database setup
+
+If you encounter errors related to missing database tables or columns, you can fix them by running the provided SQL migration script:
+
+1. Open the Supabase SQL Editor
+2. Go to the `supabase/migration_helper.sql` file in this repository
+3. Copy the entire content of the file
+4. Paste it into the SQL Editor in Supabase
+5. Run the script
+
+This will create any missing tables and add any missing columns needed for user progress tracking:
+- `user_lessons` table - For tracking lesson completion
+- `user_courses` table - For tracking overall course progress
+- `last_accessed` column in the `user_courses` table
+
+Alternatively, you can use the application's built-in auto-recovery features, which will attempt to create these tables and columns when needed. However, running the migration script directly is recommended for a more reliable setup.
+
 ---
 
 ## 🧪 Development Status
@@ -105,7 +123,7 @@ MIT License. See the `LICENSE` file for full details.
 
 ---
 
-> *"We believe Africa’s hospitality deserves world-class learning solutions. This platform is a step toward that vision."*
+> *"We believe Africa's hospitality deserves world-class learning solutions. This platform is a step toward that vision."*
 
 Built with ❤️ for Kuriftu Hotel by hospitality innovators and technologists.
 

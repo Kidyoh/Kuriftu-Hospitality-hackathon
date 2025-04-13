@@ -18,10 +18,17 @@ interface UserProfile {
   joined_at: string;
 }
 
+interface LoginStreak {
+  current_streak: number;
+  longest_streak: number;
+  last_login: string;
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
+  loginStreak: LoginStreak | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
@@ -36,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loginStreak, setLoginStreak] = useState<LoginStreak | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profileLoadAttempted, setProfileLoadAttempted] = useState(false);
   const navigate = useNavigate();
@@ -53,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
+          setLoginStreak(null);
           setIsLoading(false);
           setProfileLoadAttempted(false);
         }
@@ -100,11 +109,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('Fetched user profile:', data);
       setProfile(data as UserProfile);
+      
+      // Fetch and update login streak
+      await updateUserLoginStreak(userId);
+      
       setIsLoading(false);
     } catch (err) {
       console.error('Unexpected error fetching profile:', err);
       await createFallbackProfile(userId);
       setIsLoading(false);
+    }
+  };
+
+  const updateUserLoginStreak = async (userId: string) => {
+    try {
+      // Call the RPC function to update login streak
+      const { error } = await supabase.rpc('update_user_login_streak', {
+        p_user_id: userId
+      });
+
+      if (error) {
+        console.error('Error updating login streak:', error);
+        return;
+      }
+
+      // Fetch updated streak info
+      const { data: streakData, error: streakError } = await supabase
+        .from('user_login_streaks')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+        
+      if (streakError) {
+        console.error('Error fetching login streak:', streakError);
+        return;
+      }
+      
+      if (streakData) {
+        setLoginStreak({
+          current_streak: streakData.current_streak,
+          longest_streak: streakData.longest_streak,
+          last_login: streakData.last_login
+        });
+        
+        // Show streak notification if streak is significant
+        if (streakData.current_streak >= 5 && streakData.current_streak % 5 === 0) {
+          toast({
+            title: `${streakData.current_streak} Day Streak!`,
+            description: "Keep up the great work with your learning streak!",
+            duration: 5000
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error updating login streak:', err);
     }
   };
 
@@ -143,6 +201,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data && data.length > 0) {
           console.log('Profile created successfully:', data[0]);
           setProfile(data[0] as UserProfile);
+          
+          // Initialize login streak for new profile
+          await updateUserLoginStreak(userId);
+          
           setIsLoading(false);
         } else {
           console.log('No profile data returned after upsert');
@@ -273,6 +335,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       await supabase.auth.signOut();
       setProfile(null);
+      setLoginStreak(null);
       navigate('/auth');
       toast({
         title: "Logged out",
@@ -294,6 +357,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user,
       profile,
+      loginStreak,
       isLoading,
       signIn,
       signUp,

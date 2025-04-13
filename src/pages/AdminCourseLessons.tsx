@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  ChevronLeft, PlusCircle, Edit, Trash, GripVertical, Video, File, Save
+  ChevronLeft, PlusCircle, Edit, Trash, GripVertical, Video, File, Save, Loader2, Upload, X, RefreshCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +25,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VideoPlayer } from '@/components/lessons/VideoPlayer';
+import { getYouTubeEmbedUrl, isYouTubeAuthenticated, authenticateWithYouTube, uploadVideoToYouTube } from '@/utils/youtubeUtils';
+import { useYouTube } from '@/components/youtube/YouTubeProvider';
 
 interface Course {
   id: string;
@@ -71,6 +74,14 @@ export default function AdminCourseLessons() {
   const [isReordering, setIsReordering] = useState(false);
   const [reorderedLessons, setReorderedLessons] = useState<Lesson[]>([]);
   const [activeLanguageTab, setActiveLanguageTab] = useState('english');
+  const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const { 
+    isAuthenticated: youtubeAuthenticated, 
+    authenticate: handleYouTubeAuth,
+    uploadVideo: uploadYouTubeVideo
+  } = useYouTube();
   
   const form = useForm({
     resolver: zodResolver(lessonSchema),
@@ -331,6 +342,75 @@ export default function AdminCourseLessons() {
     }
   };
   
+  // Preview video when URL changes
+  useEffect(() => {
+    const videoUrl = form.watch('video_url');
+    if (videoUrl) {
+      // If it's a YouTube URL, convert it to embed URL
+      const embedUrl = getYouTubeEmbedUrl(videoUrl);
+      setVideoPreviewUrl(embedUrl);
+    } else {
+      setVideoPreviewUrl(null);
+    }
+  }, [form.watch('video_url')]);
+
+  // Determine if URL is a YouTube embed or direct video
+  const isYouTubeEmbed = React.useMemo(() => {
+    if (!videoPreviewUrl) return false;
+    return videoPreviewUrl.includes('youtube.com/embed/') || videoPreviewUrl.includes('youtu.be/');
+  }, [videoPreviewUrl]);
+
+  // Update the handleUploadVideo function
+  const handleUploadVideo = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+    if (!validVideoTypes.includes(file.type)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid file type",
+        description: "Please upload a valid video file (MP4, WebM, OGG, or QuickTime)."
+      });
+      return;
+    }
+    
+    setIsUploading(true);
+    setProgress(0);
+    
+    try {
+      // Use the YouTube context to upload
+      const embedUrl = await uploadYouTubeVideo(
+        file,
+        form.getValues('title') || file.name,
+        form.getValues('description') || '',
+        [],
+        (progress) => setProgress(progress)
+      );
+      
+      if (embedUrl) {
+        form.setValue('video_url', embedUrl);
+        setVideoPreviewUrl(embedUrl);
+        toast({
+          title: "Video uploaded to YouTube",
+          description: "The video has been uploaded and linked successfully."
+        });
+      } else {
+        throw new Error('Failed to upload video to YouTube');
+      }
+    } catch (error: any) {
+      console.error('Error uploading video:', error);
+      toast({
+        variant: "destructive",
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "There was an error uploading your video. Please try again."
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
   return (
     <div className="container py-6">
       <div className="flex items-center justify-between mb-6">
@@ -438,10 +518,110 @@ export default function AdminCourseLessons() {
                         name="video_url"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Video URL (optional)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="https://example.com/video" {...field} />
-                            </FormControl>
+                            <FormLabel>Video</FormLabel>
+                            <div className="space-y-4">
+                              <div className="flex gap-2">
+                                <FormControl>
+                                  <Input placeholder="Enter YouTube URL or upload to get a link" {...field} />
+                                </FormControl>
+                                {field.value && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      form.setValue('video_url', '');
+                                      setVideoPreviewUrl(null);
+                                    }}
+                                  >
+                                    <X className="h-4 w-4" />
+                                    <span className="sr-only">Clear URL</span>
+                                  </Button>
+                                )}
+                              </div>
+                              
+                              <div className="flex flex-wrap gap-2">
+                                {!youtubeAuthenticated && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleYouTubeAuth}
+                                  >
+                                    <Video className="mr-2 h-4 w-4" />
+                                    Connect YouTube
+                                  </Button>
+                                )}
+                                
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => document.getElementById('youtube-upload')?.click()}
+                                  disabled={isUploading || !youtubeAuthenticated}
+                                >
+                                  {isUploading ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Uploading {progress}%
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Video className="mr-2 h-4 w-4" />
+                                      Upload to YouTube
+                                    </>
+                                  )}
+                                </Button>
+                                <input
+                                  id="youtube-upload"
+                                  type="file"
+                                  accept="video/*"
+                                  onChange={handleUploadVideo}
+                                  className="hidden"
+                                />
+                                
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const url = form.getValues('video_url');
+                                    if (url) {
+                                      const embedUrl = getYouTubeEmbedUrl(url);
+                                      form.setValue('video_url', embedUrl);
+                                      setVideoPreviewUrl(embedUrl);
+                                    }
+                                  }}
+                                >
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  Convert to Embed
+                                </Button>
+                              </div>
+                              
+                              {videoPreviewUrl && (
+                                <div className="mt-4 border rounded-md overflow-hidden">
+                                  {isYouTubeEmbed ? (
+                                    // YouTube embed iframe 
+                                    <div className="relative aspect-video">
+                                      <iframe 
+                                        className="absolute top-0 left-0 w-full h-full" 
+                                        src={videoPreviewUrl} 
+                                        title="Video Preview"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowFullScreen
+                                      ></iframe>
+                                    </div>
+                                  ) : (
+                                    // Direct video player for Supabase-hosted videos
+                                    <VideoPlayer 
+                                      videoUrl={videoPreviewUrl}
+                                      title={form.getValues('title') || "Video Preview"}
+                                      className="w-full aspect-video"
+                                    />
+                                  )}
+                                </div>
+                              )}
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -711,10 +891,110 @@ export default function AdminCourseLessons() {
                 name="video_url"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Video URL (optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://example.com/video" {...field} />
-                    </FormControl>
+                    <FormLabel>Video</FormLabel>
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input placeholder="Enter YouTube URL or upload to get a link" {...field} />
+                        </FormControl>
+                        {field.value && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              form.setValue('video_url', '');
+                              setVideoPreviewUrl(null);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                            <span className="sr-only">Clear URL</span>
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {!youtubeAuthenticated && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleYouTubeAuth}
+                          >
+                            <Video className="mr-2 h-4 w-4" />
+                            Connect YouTube
+                          </Button>
+                        )}
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById('youtube-upload')?.click()}
+                          disabled={isUploading || !youtubeAuthenticated}
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Uploading {progress}%
+                            </>
+                          ) : (
+                            <>
+                              <Video className="mr-2 h-4 w-4" />
+                              Upload to YouTube
+                            </>
+                          )}
+                        </Button>
+                        <input
+                          id="youtube-upload"
+                          type="file"
+                          accept="video/*"
+                          onChange={handleUploadVideo}
+                          className="hidden"
+                        />
+                        
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const url = form.getValues('video_url');
+                            if (url) {
+                              const embedUrl = getYouTubeEmbedUrl(url);
+                              form.setValue('video_url', embedUrl);
+                              setVideoPreviewUrl(embedUrl);
+                            }
+                          }}
+                        >
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Convert to Embed
+                        </Button>
+                      </div>
+                      
+                      {videoPreviewUrl && (
+                        <div className="mt-4 border rounded-md overflow-hidden">
+                          {isYouTubeEmbed ? (
+                            // YouTube embed iframe 
+                            <div className="relative aspect-video">
+                              <iframe 
+                                className="absolute top-0 left-0 w-full h-full" 
+                                src={videoPreviewUrl} 
+                                title="Video Preview"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowFullScreen
+                              ></iframe>
+                            </div>
+                          ) : (
+                            // Direct video player for Supabase-hosted videos
+                            <VideoPlayer 
+                              videoUrl={videoPreviewUrl}
+                              title={form.getValues('title') || "Video Preview"}
+                              className="w-full aspect-video"
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

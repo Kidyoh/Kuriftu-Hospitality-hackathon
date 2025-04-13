@@ -287,7 +287,7 @@ export async function updateLessonProgress(
  */
 export async function getUserProgressSummary(userId: string) {
   try {
-    // Get all user courses with progress
+    // Get all user courses with progress and detailed info
     const { data: userCourses, error: coursesError } = await supabase
       .from('user_courses')
       .select(`
@@ -296,70 +296,207 @@ export async function getUserProgressSummary(userId: string) {
           id,
           title,
           description,
-          image_url,
-          difficulty_level
+          difficulty_level,
+          category,
+          estimated_hours
+        )
+      `)
+      .eq('user_id', userId)
+      .order('last_accessed', { ascending: false });
+    
+    if (coursesError) throw coursesError;
+    
+    // Get lesson completion stats with more detail
+    const { data: lessonStats, error: lessonError } = await supabase
+      .from('user_lessons')
+      .select(`
+        course_id,
+        completed,
+        progress,
+        completed_at,
+        started_at,
+        lesson_id,
+        lessons:lesson_id (
+          title,
+          description,
+          sequence_order
         )
       `)
       .eq('user_id', userId);
     
-    if (coursesError) throw coursesError;
-    
-    // Get lesson completion stats
-    const { data: lessonStats, error: lessonError } = await supabase
-      .from('user_lessons')
-      .select('course_id, completed')
-      .eq('user_id', userId);
-    
     if (lessonError) throw lessonError;
     
-    // Get quiz results
+    // Get detailed quiz results - Updated query to match correct table structure
     const { data: quizResults, error: quizError } = await supabase
-      .from('user_quiz_results')
-      .select('*')
+      .from('quiz_attempts')  // Changed from user_quiz_results to quiz_attempts
+      .select(`
+        quiz_id,
+        course_id,
+        score,
+        passed,
+        completed_at,
+        quizzes:quiz_id (
+          title,
+          description,
+          passing_score
+        )
+      `)
       .eq('user_id', userId);
     
     if (quizError) throw quizError;
     
+    // Get achievement data
+    const { data: achievementSummary } = await supabase.rpc('get_user_achievement_summary', {
+      user_id: userId
+    });
+    
     // Process and organize the data
     const courses = userCourses || [];
     
-    // Group lesson stats by course
+    // Group lesson stats by course with more detail
     const lessonStatsByCourse = (lessonStats || []).reduce((acc, stat) => {
       if (!acc[stat.course_id]) {
         acc[stat.course_id] = {
           total: 0,
-          completed: 0
+          completed: 0,
+          inProgress: 0,
+          averageProgress: 0,
+          lessons: []
         };
       }
       
       acc[stat.course_id].total += 1;
       if (stat.completed) {
         acc[stat.course_id].completed += 1;
+      } else if (stat.progress > 0) {
+        acc[stat.course_id].inProgress += 1;
       }
+      acc[stat.course_id].lessons.push({
+        id: stat.lesson_id,
+        title: stat.lessons?.title,
+        progress: stat.progress,
+        completed: stat.completed,
+        completedAt: stat.completed_at,
+        startedAt: stat.started_at,
+        sequenceOrder: stat.lessons?.sequence_order
+      });
+      
+      // Update average progress
+      acc[stat.course_id].averageProgress = 
+        acc[stat.course_id].lessons.reduce((sum, l) => sum + (l.progress || 0), 0) / 
+        acc[stat.course_id].lessons.length;
       
       return acc;
-    }, {} as Record<string, { total: number; completed: number }>);
+    }, {} as Record<string, {
+      total: number;
+      completed: number;
+      inProgress: number;
+      averageProgress: number;
+      lessons: Array<{
+        id: string;
+        title: string;
+        progress: number;
+        completed: boolean;
+        completedAt: string | null;
+        startedAt: string | null;
+        sequenceOrder: number;
+      }>;
+    }>);
     
-    // Calculate average quiz score by user
+    // Group quiz results by course with more detail
+    const quizStatsByCourse = (quizResults || []).reduce((acc, quiz) => {
+      if (!acc[quiz.course_id]) {
+        acc[quiz.course_id] = {
+          total: 0,
+          passed: 0,
+          averageScore: 0,
+          perfectScores: 0,
+          quizzes: []
+        };
+      }
+      
+      acc[quiz.course_id].total += 1;
+      if (quiz.passed) {
+        acc[quiz.course_id].passed += 1;
+      }
+      if (quiz.score === 100) {
+        acc[quiz.course_id].perfectScores += 1;
+      }
+      
+      acc[quiz.course_id].quizzes.push({
+        id: quiz.quiz_id,
+        title: quiz.quizzes?.title,
+        score: quiz.score,
+        passed: quiz.passed,
+        completedAt: quiz.completed_at,
+        passingScore: quiz.quizzes?.passing_score
+      });
+      
+      // Update average score
+      acc[quiz.course_id].averageScore = 
+        acc[quiz.course_id].quizzes.reduce((sum, q) => sum + (q.score || 0), 0) / 
+        acc[quiz.course_id].quizzes.length;
+      
+      return acc;
+    }, {} as Record<string, {
+      total: number;
+      passed: number;
+      averageScore: number;
+      perfectScores: number;
+      quizzes: Array<{
+        id: string;
+        title: string;
+        score: number;
+        passed: boolean;
+        completedAt: string | null;
+        passingScore: number;
+      }>;
+    }>);
+    
+    // Calculate overall quiz stats
     const totalQuizzes = quizResults?.length || 0;
     const passedQuizzes = quizResults?.filter(q => q.passed)?.length || 0;
+    const perfectScores = quizResults?.filter(q => q.score === 100)?.length || 0;
     const averageScore = totalQuizzes > 0
       ? quizResults!.reduce((sum, quiz) => sum + quiz.score, 0) / totalQuizzes
       : 0;
     
+    // Combine all data
     return {
       courses: courses.map(course => ({
         ...course,
-        lessonStats: lessonStatsByCourse[course.course_id] || { total: 0, completed: 0 }
+        lessonStats: lessonStatsByCourse[course.course_id] || {
+          total: 0,
+          completed: 0,
+          inProgress: 0,
+          averageProgress: 0,
+          lessons: []
+        },
+        quizStats: quizStatsByCourse[course.course_id] || {
+          total: 0,
+          passed: 0,
+          averageScore: 0,
+          perfectScores: 0,
+          quizzes: []
+        }
       })),
       quizStats: {
         total: totalQuizzes,
         passed: passedQuizzes,
+        perfectScores,
         averageScore
+      },
+      achievementStats: achievementSummary || {
+        total: 0,
+        completed: 0,
+        in_progress: 0,
+        completion_percentage: 0,
+        total_points_earned: 0
       },
       overallProgress: courses.length > 0
         ? courses.reduce((sum, course) => sum + (course.progress || 0), 0) / courses.length
-        : 0
+        : 0,
+      lastUpdated: new Date().toISOString()
     };
   } catch (error) {
     console.error('Error getting user progress summary:', error);

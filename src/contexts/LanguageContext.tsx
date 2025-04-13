@@ -235,6 +235,33 @@ const translations: Record<Language, Record<string, any>> = {
       errorUpdating: "Failed to update your progress. Please try again."
     },
     
+    incentives: {
+      title: "Incentives",
+      points: "Points",
+      achievements: "Achievements",
+      yourPoints: "Your Points",
+      totalPoints: "Total Points",
+      earnedPoints: "Points Earned",
+      pointsHistory: "Points History",
+      recentPoints: "Recent Points",
+      pointsEarned: "Points Earned",
+      pointsUsed: "Points Used",
+      pointsBalance: "Points Balance",
+      achievementsEarned: "Achievements Earned",
+      achievementsAvailable: "Available Achievements",
+      achievementUnlocked: "Achievement Unlocked!",
+      achievementProgress: "Achievement Progress",
+      earnedOn: "Earned on",
+      lockedAchievement: "Locked Achievement",
+      completeToUnlock: "Complete to unlock",
+      milestone: "Milestone",
+      reward: "Reward",
+      noAchievements: "No achievements yet",
+      noPoints: "No points earned yet",
+      howToEarn: "How to earn points",
+      learnMore: "Learn more about incentives"
+    },
+    
     nav: {
       home: 'Home',
       courses: 'Courses',
@@ -375,6 +402,33 @@ const translations: Record<Language, Record<string, any>> = {
       errorUpdating: "ሂደትዎን ማዘመን አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
     },
     
+    incentives: {
+      title: "ማበረታቻዎች",
+      points: "ነጥቦች",
+      achievements: "ስኬቶች",
+      yourPoints: "የእርስዎ ነጥቦች",
+      totalPoints: "ጠቅላላ ነጥቦች",
+      earnedPoints: "ያገኙት ነጥቦች",
+      pointsHistory: "የነጥብ ታሪክ",
+      recentPoints: "የቅርብ ጊዜ ነጥቦች",
+      pointsEarned: "የተገኙ ነጥቦች",
+      pointsUsed: "የተጠቀሙባቸው ነጥቦች",
+      pointsBalance: "የነጥብ ቀሪ",
+      achievementsEarned: "ያገኙት ስኬቶች",
+      achievementsAvailable: "የሚገኙ ስኬቶች",
+      achievementUnlocked: "ስኬት ተከፍቷል!",
+      achievementProgress: "የስኬት እድገት",
+      earnedOn: "የተገኘበት ቀን",
+      lockedAchievement: "የተቆለፈ ስኬት",
+      completeToUnlock: "ለመክፈት ይጨርሱ",
+      milestone: "ደረጃ",
+      reward: "ሽልማት",
+      noAchievements: "እስካሁን ስኬቶች የሉም",
+      noPoints: "እስካሁን ነጥቦች አልተገኙም",
+      howToEarn: "ነጥቦችን እንዴት ማግኘት ይቻላል",
+      learnMore: "ስለ ማበረታቻዎች ተጨማሪ ይወቁ"
+    },
+    
     app: {
       title: 'የኩሪፍቱ መማሪያ መንደር',
       loading: 'በመጫን ላይ...',
@@ -492,6 +546,33 @@ const translations: Record<Language, Record<string, any>> = {
       lessonCompletedDesc: "Barnoota kana xumuruuf baga gammadde!",
       error: "Dogoggora",
       errorUpdating: "Tarkaanfii keessan haaromsuu hin dandeenye. Maaloo irra deebi'uun yaalaa."
+    },
+    
+    incentives: {
+      title: "Jajjabeessituu",
+      points: "Qabxiiwwan",
+      achievements: "Galmeewwan",
+      yourPoints: "Qabxiiwwan Keessan",
+      totalPoints: "Qabxiiwwan Waliigalaa",
+      earnedPoints: "Qabxiiwwan Argattan",
+      pointsHistory: "Seenaa Qabxiiwwanii",
+      recentPoints: "Qabxiiwwan Dhiyeenya",
+      pointsEarned: "Qabxiiwwan Argame",
+      pointsUsed: "Qabxiiwwan Fayyadame",
+      pointsBalance: "Haftee Qabxiiwwanii",
+      achievementsEarned: "Galmeewwan Argattan",
+      achievementsAvailable: "Galmeewwan Argamuu danda'an",
+      achievementUnlocked: "Galmeen bantameera!",
+      achievementProgress: "Fooya'iinsa Galmee",
+      earnedOn: "Guyyaa Argame",
+      lockedAchievement: "Galmee Cufaa",
+      completeToUnlock: "Banuf xumurii",
+      milestone: "Sadarkaa",
+      reward: "Badhaasa",
+      noAchievements: "Hanga ammaatti galmeen hin jiru",
+      noPoints: "Hanga ammaatti qabxiin hin argamne",
+      howToEarn: "Qabxiiwwan akkamitti argachuu akka dandeessan",
+      learnMore: "Waa'ee jajjabeessituu caalatti baraa"
     },
     
     app: {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -192,24 +191,24 @@ export default function AdminQuizQuestions() {
     
     // For multiple choice, verify we have at least one correct answer
     if (currentQuestion.question_type === 'multiple_choice') {
-      const hasCorrectOption = questionOptions.some(opt => opt.is_correct);
+      // Filter out empty options before validation
+      const validOptions = questionOptions.filter(opt => opt.option_text?.trim());
+      
+      if (validOptions.length < 2) {
+        toast({
+          title: "Invalid Options",
+          description: "Please provide at least 2 options.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const hasCorrectOption = validOptions.some(opt => opt.is_correct);
       
       if (!hasCorrectOption) {
         toast({
           title: "Invalid Options",
           description: "Please mark at least one option as correct.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Check that all options have text
-      const emptyOptions = questionOptions.some(opt => !opt.option_text);
-      
-      if (emptyOptions) {
-        toast({
-          title: "Invalid Options",
-          description: "Please provide text for all options.",
           variant: "destructive",
         });
         return;
@@ -272,18 +271,23 @@ export default function AdminQuizQuestions() {
       
       // Create options for multiple choice questions
       if (currentQuestion.question_type === 'multiple_choice' && questionId) {
-        const optionsToInsert = questionOptions.map((option, index) => ({
-          question_id: questionId,
-          option_text: option.option_text,
-          is_correct: option.is_correct || false,
-          sequence_order: index
-        }));
+        // Filter out empty options and reorder sequence
+        const validOptions = questionOptions
+          .filter(opt => opt.option_text?.trim())
+          .map((option, index) => ({
+            question_id: questionId,
+            option_text: option.option_text?.trim(),
+            is_correct: option.is_correct || false,
+            sequence_order: index
+          }));
         
-        const { error: optionError } = await supabase
-          .from('quiz_options')
-          .insert(optionsToInsert);
-          
-        if (optionError) throw optionError;
+        if (validOptions.length > 0) {
+          const { error: optionError } = await supabase
+            .from('quiz_options')
+            .insert(validOptions);
+            
+          if (optionError) throw optionError;
+        }
       }
       
       // Refresh questions list
@@ -713,11 +717,9 @@ export default function AdminQuizQuestions() {
                   <FileQuestion className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">No questions added yet</p>
                   <p className="text-sm text-muted-foreground mb-4">Create your first question for this quiz</p>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" /> Add First Question
-                    </Button>
-                  </DialogTrigger>
+                  <Button onClick={() => setIsDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add First Question
+                  </Button>
                 </CardContent>
               </Card>
             )}

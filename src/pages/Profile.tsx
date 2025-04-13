@@ -36,7 +36,7 @@ export default function Profile() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="container py-6 space-y-6">
         <ProfileHeader profile={profile} />
         
@@ -60,6 +60,6 @@ export default function Profile() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
+    </>
   );
 }

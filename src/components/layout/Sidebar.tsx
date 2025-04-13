@@ -6,7 +6,18 @@ import {
   Home, Settings, HelpCircle,
   Briefcase, User, LineChart,
   CalendarDays, MessageSquare, Coffee,
-  ShieldAlert
+  ShieldAlert,
+  BadgeInfo,
+  Calendar,
+  Clock,
+  HeartHandshake,
+  Layers,
+  LayoutDashboard,
+  LibrarySquare,
+  PersonStanding,
+  PieChart,
+  Video,
+  Youtube
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -80,17 +91,17 @@ export function Sidebar({ className }: SidebarProps) {
                 href="/courses" 
                 active={isActive(path, '/courses', false) && !path.startsWith('/admin')} 
               />
-              <SidebarItem 
+              {/* <SidebarItem 
                 icon={GraduationCap} 
                 label="My Learning" 
                 href="/my-learning" 
                 active={isActive(path, '/my-learning', false)} 
-              />
+              /> */}
               <SidebarItem 
                 icon={BarChart2} 
-                label="My Progress" 
-                href="/progress" 
-                active={isActive(path, '/progress', true)} 
+                label="My Achievements" 
+                href="/achievements" 
+                active={isActive(path, '/achievements', true)} 
               />
               <SidebarItem 
                 icon={User} 
@@ -98,12 +109,12 @@ export function Sidebar({ className }: SidebarProps) {
                 href="/profile" 
                 active={path === '/profile'} 
               />
-              <SidebarItem 
+              {/* <SidebarItem 
                 icon={HelpCircle} 
                 label="Help & Support" 
                 href="/support" 
                 active={path === '/support'} 
-              />
+              /> */}
             </div>
           </div>
         </div>
@@ -189,21 +200,19 @@ export function Sidebar({ className }: SidebarProps) {
                 href="/admin/analytics" 
                 active={isActive(path, '/admin/analytics')} 
               />
-              <SidebarItem 
+              {/* <SidebarItem 
                 icon={Settings} 
                 label="System Settings" 
                 href="/admin/settings" 
                 active={isActive(path, '/admin/settings')} 
+              /> */}
+              <SidebarItem 
+                icon={Youtube} 
+                label="YouTube Settings" 
+                href="/admin/youtube-settings" 
+                active={isActive(path, '/admin/youtube-settings')} 
               />
             </div>
-          </div>
-          <div className="px-4 py-2">
-            <SidebarItem 
-              icon={Home} 
-              label="Back to Dashboard" 
-              href="/dashboard" 
-              active={false} 
-            />
           </div>
         </div>
       </div>
@@ -236,16 +245,16 @@ export function Sidebar({ className }: SidebarProps) {
               />
               <SidebarItem 
                 icon={GraduationCap} 
-                label="My Learning" 
-                href="/my-learning" 
-                active={isActive(path, '/my-learning', false)} 
+                label="My Achievements" 
+                href="/achievements" 
+                active={isActive(path, '/achievements', true)} 
               />
-              <SidebarItem 
+              {/* <SidebarItem 
                 icon={BarChart2} 
                 label="My Progress" 
                 href="/progress" 
                 active={isActive(path, '/progress', true)} 
-              />
+              /> */}
             </div>
           )}
           
@@ -286,25 +295,25 @@ export function Sidebar({ className }: SidebarProps) {
                 icon={ShieldAlert} 
                 label="Admin Dashboard" 
                 href="/admin" 
-                active={false} 
+                active={path === '/admin'} 
               />
               <SidebarItem 
                 icon={Users} 
                 label="User Management" 
                 href="/admin/users" 
-                active={false} 
+                active={isActive(path, '/admin/users', true)} 
               />
               <SidebarItem 
                 icon={BookOpen} 
                 label="Course Management" 
                 href="/admin/courses" 
-                active={false} 
+                active={isActive(path, '/admin/courses', false)} 
               />
               <SidebarItem 
                 icon={LineChart} 
                 label="Analytics" 
                 href="/admin/analytics" 
-                active={false} 
+                active={isActive(path, '/admin/analytics', false)} 
               />
             </div>
           )}
@@ -351,12 +360,12 @@ export function Sidebar({ className }: SidebarProps) {
               href="/profile" 
               active={isActive(path, '/profile', true)} 
             />
-            <SidebarItem 
+            {/* <SidebarItem 
               icon={Settings} 
               label="Settings" 
               href="/settings" 
               active={isActive(path, '/settings', true)} 
-            />
+            /> */}
             <SidebarItem 
               icon={HelpCircle} 
               label="Help & Support" 

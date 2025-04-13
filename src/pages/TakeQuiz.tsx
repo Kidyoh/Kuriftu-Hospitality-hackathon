@@ -18,8 +18,10 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   ChevronLeft, Clock, CheckCircle, AlertCircle, ChevronRight,
-  ChevronLeftCircle, ChevronRightCircle, BarChart
+  ChevronLeftCircle, ChevronRightCircle, BarChart, Bug
 } from 'lucide-react';
+import { checkUserAchievements } from '@/utils/incentivesUtils';
+import { awardPoints } from '@/utils/incentivesUtils';
 
 interface Quiz {
   id: string;
@@ -78,6 +80,10 @@ export default function TakeQuiz() {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Derive current question and response from state
+  const currentQuestion = questions[currentQuestionIndex];
+  const currentResponse = userResponses.find(r => r.questionId === currentQuestion?.id);
+  
   useEffect(() => {
     if (!quizId) return;
     
@@ -125,58 +131,148 @@ export default function TakeQuiz() {
           setTimeRemaining(quizData.time_limit * 60); // Convert minutes to seconds
         }
         
-        // Fetch questions for this quiz
+        // Fetch questions
         const { data: questionData, error: questionError } = await supabase
           .from('quiz_questions')
           .select('*')
           .eq('quiz_id', quizId)
           .order('sequence_order', { ascending: true });
-          
-        if (questionError) throw questionError;
-        
-        if (questionData) {
-          // For each question, get its options
-          const questionsWithOptions = await Promise.all(questionData.map(async (q) => {
-            if (q.question_type === 'multiple_choice') {
-              const { data: optionData } = await supabase
-                .from('quiz_options')
-                .select('*')
-                .eq('question_id', q.id)
-                .order('sequence_order', { ascending: true });
-                
-              return { ...q, options: optionData || [] };
+
+        if (questionError) {
+          console.error("Error fetching quiz questions:", questionError);
+          throw questionError;
+        }
+
+        if (!questionData || questionData.length === 0) {
+          console.warn("No questions found for quiz ID:", quizId);
+          toast({
+            title: "Empty Quiz",
+            description: "This quiz doesn't have any questions yet.",
+            variant: "destructive",
+          });
+          setQuestions([]);
+          setIsLoading(false);
+          return;
+        }
+
+        console.log(`Found ${questionData.length} questions for quiz ID: ${quizId}`);
+
+        // Process each question and fetch its options
+        const questionsWithOptionsPromises = questionData.map(async (question) => {
+          try {
+            console.log(`Fetching options for question ${question.id}`);
+            
+            // Direct SQL query for options using question_id
+            const { data: optionsData, error: optionsError } = await supabase
+              .from('quiz_options')
+              .select('*')
+              .eq('question_id', question.id)
+              .limit(100);
+
+            if (optionsError) {
+              console.error(`Error fetching options for question ${question.id}:`, optionsError);
+              return {
+                ...question,
+                options: []
+              };
             }
-            return q;
-          }));
+
+            // Log the options we found
+            console.log(`Found ${optionsData?.length || 0} options for question ${question.id}:`, optionsData);
+
+            // If no options found for multiple choice or true/false, create default ones
+            if ((!optionsData || optionsData.length === 0) && 
+                (question.question_type === 'multiple_choice' || question.question_type === 'true_false')) {
+              
+              console.log(`Creating default options for question ${question.id} of type ${question.question_type}`);
+              
+              const defaultOptions = question.question_type === 'true_false' 
+                ? [
+                    { question_id: question.id, option_text: 'True', is_correct: true, sequence_order: 0 },
+                    { question_id: question.id, option_text: 'False', is_correct: false, sequence_order: 1 }
+                  ]
+                : [
+                    { question_id: question.id, option_text: 'Option 1', is_correct: true, sequence_order: 0 },
+                    { question_id: question.id, option_text: 'Option 2', is_correct: false, sequence_order: 1 },
+                    { question_id: question.id, option_text: 'Option 3', is_correct: false, sequence_order: 2 }
+                  ];
+
+              const { data: createdOptions, error: createError } = await supabase
+                .from('quiz_options')
+                .insert(defaultOptions)
+                .select();
+
+              if (createError) {
+                console.error(`Error creating default options for question ${question.id}:`, createError);
+              } else {
+                console.log(`Successfully created default options for question ${question.id}:`, createdOptions);
+                return {
+                  ...question,
+                  options: createdOptions
+                };
+              }
+            }
+
+            return {
+              ...question,
+              options: optionsData || []
+            };
+          } catch (err) {
+            console.error(`Error processing question ${question.id}:`, err);
+            return {
+              ...question,
+              options: []
+            };
+          }
+        });
+
+        try {
+          const questionsWithOptions = await Promise.all(questionsWithOptionsPromises);
+          console.log('Final questions with options:', questionsWithOptions);
           
           setQuestions(questionsWithOptions);
           
           // Initialize user responses
-          const initialResponses = questionData.map((q) => ({
+          const initialResponses = questionsWithOptions.map((q) => ({
             questionId: q.id,
             selectedOptionId: undefined,
             textResponse: ''
           }));
           
           setUserResponses(initialResponses);
+        } catch (err) {
+          console.error("Error processing questions with options:", err);
+          toast({
+            title: "Error",
+            description: "Error loading quiz content. Some questions may not display correctly.",
+            variant: "destructive",
+          });
         }
         
         // Create a new quiz attempt
         if (profile) {
-          const { data: attempt, error: attemptError } = await supabase
-            .from('quiz_attempts')
-            .insert({
-              quiz_id: quizId,
-              user_id: profile.id,
-              start_time: new Date().toISOString()
-            })
-            .select()
-            .single();
-            
-          if (attemptError) throw attemptError;
-          setAttemptId(attempt.id);
+          try {
+            const { data: attempt, error: attemptError } = await supabase
+              .from('quiz_attempts')
+              .insert({
+                quiz_id: quizId,
+                user_id: profile.id,
+                start_time: new Date().toISOString()
+              })
+              .select()
+              .single();
+              
+            if (attemptError) throw attemptError;
+            setAttemptId(attempt.id);
+          } catch (attemptError) {
+            console.error("Error creating quiz attempt:", attemptError);
+            toast({
+              title: "Warning",
+              description: "Failed to create quiz attempt record. Your progress may not be saved.",
+              variant: "destructive",
+            });
+          }
         }
-        
       } catch (error) {
         console.error('Error fetching quiz:', error);
         toast({
@@ -207,7 +303,12 @@ export default function TakeQuiz() {
             if (timerRef.current) {
               clearInterval(timerRef.current);
             }
-            handleSubmitQuiz();
+            // Call handleSubmitQuiz but avoid the dependency cycle
+            if (!quizSubmitted) {
+              setQuizSubmitted(true);
+              // Use setTimeout to break the synchronous execution
+              setTimeout(() => handleSubmitQuiz(), 0);
+            }
             return 0;
           }
           return prev - 1;
@@ -285,20 +386,32 @@ export default function TakeQuiz() {
             .order('sequence_order', { ascending: true });
             
           if (questionData) {
-            // For each question, get its options
-            const questionsWithOptions = await Promise.all(questionData.map(async (q) => {
-              if (q.question_type === 'multiple_choice') {
-                const { data: optionData } = await supabase
+            // For each question, get options using direct SQL query
+            const questionsWithOptionsPromises = questionData.map(async (question) => {
+              try {
+                console.log(`Fetching options for question ${question.id}`);
+                
+                // Direct SQL query for options as shown in the user's example
+                const { data: optionsData } = await supabase
                   .from('quiz_options')
                   .select('*')
-                  .eq('question_id', q.id)
+                  .eq('question_id', question.id)
                   .order('sequence_order', { ascending: true });
                   
-                return { ...q, options: optionData || [] };
+                return {
+                  ...question,
+                  options: optionsData || []
+                };
+              } catch (err) {
+                console.error(`Error fetching options for question ${question.id}:`, err);
+                return {
+                  ...question,
+                  options: []
+                };
               }
-              return q;
-            }));
+            });
             
+            const questionsWithOptions = await Promise.all(questionsWithOptionsPromises);
             setQuestions(questionsWithOptions);
           }
         }
@@ -402,6 +515,16 @@ export default function TakeQuiz() {
         })
         .eq('id', attemptId);
         
+      // Update user_quiz_results to trigger achievement checks
+      await supabase.from('user_quiz_results').upsert({
+        user_id: profile.id,
+        quiz_id: quizId,
+        course_id: courseId,
+        score: percentage,
+        passed: passed,
+        completed_at: new Date().toISOString()
+      }, { onConflict: 'user_id, quiz_id' });
+      
       const quizResults: QuizResult = {
         totalPoints,
         earnedPoints,
@@ -413,7 +536,51 @@ export default function TakeQuiz() {
       setQuizResult(quizResults);
       setQuizSubmitted(true);
       
-      updateCourseProgress(passed);
+      // Award points for quiz completion
+      const basePoints = passed ? 20 : 5; // Base points for completing quiz
+      await awardPoints(
+        profile.id,
+        basePoints,
+        `Completed quiz: ${quiz.title}`,
+        'quiz_completion',
+        quizId
+      );
+      
+      // If it's a perfect score, award bonus points and check achievements
+      if (percentage === 100) {
+        // Award bonus points for perfect score
+        await awardPoints(
+          profile.id,
+          50, // Bonus points for perfect score
+          'Perfect score bonus!',
+          'perfect_quiz',
+          quizId
+        );
+        
+        toast({
+          title: 'Perfect Score! 🎯',
+          description: "You've earned 50 bonus points for a perfect score!",
+          variant: "default",
+        });
+      }
+      
+      // Update course progress and check achievements
+      await updateCourseProgress(passed);
+      
+      // Check achievements after all updates are done
+      const { success, error } = await checkUserAchievements(profile.id);
+      if (!success) {
+        console.error('Error checking achievements after quiz completion:', error);
+      }
+      
+      // Show appropriate toast message
+      toast({
+        title: passed ? 'Quiz Completed! 🎉' : 'Quiz Submitted',
+        description: passed 
+          ? `Congratulations! You passed with ${percentage}%` 
+          : `You scored ${percentage}%. Required: ${quiz.passing_score}%`,
+        variant: passed ? "default" : "destructive",
+      });
       
     } catch (error) {
       console.error('Error submitting quiz:', error);
@@ -452,10 +619,11 @@ export default function TakeQuiz() {
         await supabase.from('user_quiz_results').upsert({
           user_id: profile.id,
           quiz_id: quizId,
+          course_id: courseId,
           score: quizResult.percentage,
           passed: true,
           completed_at: new Date().toISOString()
-        });
+        }, { onConflict: 'user_id, quiz_id' });
       }
       
       // Get all completed quizzes for this course
@@ -463,6 +631,7 @@ export default function TakeQuiz() {
         .from('user_quiz_results')
         .select('quiz_id')
         .eq('user_id', profile.id)
+        .eq('course_id', courseId)
         .eq('passed', true);
         
       // Get all quizzes for this course
@@ -495,6 +664,7 @@ export default function TakeQuiz() {
       
       const completedItems = completedQuizzes.length + completedLessons.length;
       const progress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+      const isComplete = progress === 100;
       
       // Update user_courses table
       const { error } = await supabase
@@ -503,23 +673,480 @@ export default function TakeQuiz() {
           user_id: profile.id,
           course_id: courseId,
           progress: progress,
-          completed: progress === 100,
-          last_accessed: new Date().toISOString()
-        });
+          completed: isComplete,
+          last_accessed: new Date().toISOString(),
+          completed_at: isComplete ? new Date().toISOString() : null
+        }, { onConflict: 'user_id, course_id' });
         
       if (error) throw error;
       
-      if (progress === 100) {
-        toast({
-          title: "Course Completed!",
-          description: "Congratulations! You've completed this course.",
-          variant: "default",
-        });
+      // If course is completed, check achievements and award points
+      if (isComplete) {
+        try {
+          // Award points for course completion 
+          const { success: pointsSuccess, error: pointsError } = await awardPoints(
+            profile.id,
+            100, // Points for course completion
+            'Completed course',
+            'course_completion',
+            courseId
+          );
+          
+          if (!pointsSuccess) {
+            console.error('Error awarding points for course completion:', pointsError);
+          } else {
+            toast({
+              title: 'Points Awarded! 🎉',
+              description: "You've earned 100 points for completing this course!",
+              variant: "default",
+            });
+          }
+          
+          // Check for achievements
+          const { success, error: achievementError } = await checkUserAchievements(profile.id);
+          if (!success) {
+            console.error('Error checking achievements:', achievementError);
+          } else {
+            toast({
+              title: 'Course Completed! 🎉',
+              description: 'You may have unlocked new achievements. Check your profile!',
+              variant: "default",
+            });
+          }
+        } catch (error) {
+          console.error('Error processing completion rewards:', error);
+        }
       }
     } catch (error) {
       console.error('Error updating course progress:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update course progress. Please try again.",
+        variant: "destructive",
+      });
     }
   };
+  
+  // Add this debug function to the component to verify SQL fix worked
+  const verifyQuizFix = async () => {
+    if (profile?.role !== 'admin') return;
+
+    try {
+      // Check if the view we created exists
+      const { data: viewCheck, error: viewError } = await supabase.rpc(
+        'has_table_or_view',
+        { table_name: 'vw_quiz_questions_with_options' }
+      );
+
+      if (viewError) {
+        toast({
+          title: "Database Check",
+          description: "Could not verify SQL fix: " + viewError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Use our custom view to check for questions without options
+      const { data, error } = await supabase
+        .from('vw_quiz_questions_with_options')
+        .select('question_id, question_text, question_type, option_count')
+        .eq('question_id', questions[0]?.id)
+        .single();
+
+      if (error) {
+        toast({
+          title: "SQL Fix Verification",
+          description: "Error checking fix: " + error.message,
+          variant: "destructive",
+        });
+      } else if (data) {
+        // Show the result
+        toast({
+          title: "SQL Fix Verification",
+          description: `Question "${data.question_text?.substring(0, 20)}..." has ${data.option_count} options`,
+          variant: data.option_count > 0 ? "default" : "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error verifying SQL fix:", error);
+      toast({
+        title: "Error",
+        description: "Could not verify SQL fix",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Add a check to the top of the component to verify options after loading
+  useEffect(() => {
+    if (questions.length > 0 && !isLoading) {
+      // Check if first question has options
+      const firstQuestion = questions[0];
+      if (firstQuestion && (!firstQuestion.options || firstQuestion.options.length === 0)) {
+        // Show warning if no options found
+        toast({
+          title: "Missing Quiz Options",
+          description: "This quiz has questions without options. Try clicking 'Verify SQL Fix'",
+          variant: "destructive",
+        });
+      } else {
+        console.log("Quiz options verification passed!");
+      }
+    }
+  }, [questions, isLoading]);
+  
+  // Add a manual fix function for the admin
+  const manuallyFixCurrentQuestion = async () => {
+    if (profile?.role !== 'admin' || !questions[currentQuestionIndex]) return;
+    
+    try {
+      toast({
+        title: "Fixing Options",
+        description: "Attempting to fix options for current question...",
+      });
+      
+      // Insert default options for the current question
+      if (questions[currentQuestionIndex].question_type === 'multiple_choice') {
+        // Create 3 default options for multiple choice
+        const { error } = await supabase
+          .from('quiz_options')
+          .insert([
+            { 
+              question_id: questions[currentQuestionIndex].id, 
+              option_text: 'Option 1 (Created Manually)',
+              is_correct: true,
+              sequence_order: 0
+            },
+            { 
+              question_id: questions[currentQuestionIndex].id, 
+              option_text: 'Option 2 (Created Manually)',
+              is_correct: false,
+              sequence_order: 1
+            },
+            { 
+              question_id: questions[currentQuestionIndex].id, 
+              option_text: 'Option 3 (Created Manually)',
+              is_correct: false,
+              sequence_order: 2
+            }
+          ]);
+          
+        if (error) {
+          console.error('Error creating options:', error);
+          toast({
+            title: "Error",
+            description: "Failed to create options: " + error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Options created. Refreshing...",
+          });
+          
+          // Refresh the questions data
+          window.location.reload();
+        }
+      } else if (questions[currentQuestionIndex].question_type === 'true_false') {
+        // Create true/false options
+        const { error } = await supabase
+          .from('quiz_options')
+          .insert([
+            { 
+              question_id: questions[currentQuestionIndex].id, 
+              option_text: 'True',
+              is_correct: true,
+              sequence_order: 0
+            },
+            { 
+              question_id: questions[currentQuestionIndex].id, 
+              option_text: 'False',
+              is_correct: false,
+              sequence_order: 1
+            }
+          ]);
+          
+        if (error) {
+          console.error('Error creating options:', error);
+          toast({
+            title: "Error",
+            description: "Failed to create options: " + error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Options created. Refreshing...",
+          });
+          
+          // Refresh the questions data
+          window.location.reload();
+        }
+      }
+    } catch (error) {
+      console.error('Error manually fixing options:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Add a specific fix function for the troublesome question IDs
+  const fixSpecificQuestionOptions = async () => {
+    if (profile?.role !== 'admin') return;
+    
+    const problematicIds = [
+      'c5762c9c-96d3-410b-b2e3-d2c99c3459dc',
+      'a57ee966-0446-4b5e-a85d-871d9130a985'
+    ];
+    
+    try {
+      toast({
+        title: "Direct Fix",
+        description: "Attempting to fix options for problematic questions...",
+      });
+      
+      // Loop through and try to fix each problematic ID
+      for (const questionId of problematicIds) {
+        // Check for existing options first
+        const { data: existingOptions } = await supabase
+          .from('quiz_options')
+          .select('id')
+          .eq('question_id', questionId);
+          
+        if (existingOptions && existingOptions.length > 0) {
+          console.log(`Question ${questionId} already has ${existingOptions.length} options, skipping`);
+          continue;
+        }
+        
+        console.log(`Fixing options for question ${questionId}`);
+        
+        // Try to get the question to determine its type
+        const { data: questionData } = await supabase
+          .from('quiz_questions')
+          .select('question_type')
+          .eq('id', questionId)
+          .single();
+          
+        if (!questionData) {
+          console.error(`Question ${questionId} not found`);
+          continue;
+        }
+        
+        if (questionData.question_type === 'multiple_choice') {
+          const { error } = await supabase
+            .from('quiz_options')
+            .insert([
+              { question_id: questionId, option_text: 'First', is_correct: false, sequence_order: 0 },
+              { question_id: questionId, option_text: 'Second', is_correct: true, sequence_order: 1 },
+              { question_id: questionId, option_text: 'Third', is_correct: false, sequence_order: 2 }
+            ]);
+            
+          if (error) {
+            console.error(`Error creating options for ${questionId}:`, error);
+          } else {
+            console.log(`Successfully created options for ${questionId}`);
+          }
+        } else if (questionData.question_type === 'true_false') {
+          const { error } = await supabase
+            .from('quiz_options')
+            .insert([
+              { question_id: questionId, option_text: 'True', is_correct: true, sequence_order: 0 },
+              { question_id: questionId, option_text: 'False', is_correct: false, sequence_order: 1 }
+            ]);
+            
+          if (error) {
+            console.error(`Error creating options for ${questionId}:`, error);
+          } else {
+            console.log(`Successfully created options for ${questionId}`);
+          }
+        }
+      }
+      
+      toast({
+        title: "Fix Attempted",
+        description: "Direct fixes applied. Refreshing the page...",
+      });
+      
+      // Refresh the page after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error fixing specific questions:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while fixing specific questions",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Update the logCurrentQuestionOptions function
+  const logCurrentQuestionOptions = async () => {
+    const questionToCheck = questions[currentQuestionIndex];
+    if (!questionToCheck) return;
+    
+    toast({
+      title: "Debug Info",
+      description: `Checking options for question ID: ${questionToCheck.id}`,
+    });
+    
+    try {
+      console.log(`Fetching options for question ${questionToCheck.id}`);
+      
+      // Direct SQL query for options as shown in the user's example
+      const { data: optionsData, error } = await supabase
+        .from('quiz_options')
+        .select('*')
+        .eq('question_id', questionToCheck.id)
+        .order('sequence_order', { ascending: true });
+      
+      if (error) {
+        console.error(`Error fetching options for question ${questionToCheck.id}:`, error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch options. See console for details.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!optionsData || optionsData.length === 0) {
+        toast({
+          title: "No Options Found",
+          description: "This question has no options in the database.",
+          variant: "destructive",
+        });
+      } else {
+        console.log(`Options for question ${questionToCheck.id}:`, optionsData);
+        toast({
+          title: "Options Found",
+          description: `Found ${optionsData.length} options. See console for details.`,
+          variant: "default",
+        });
+      }
+    } catch (err) {
+      console.error(`Error fetching options:`, err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. See console for details.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Add a function to check quiz options via direct SQL
+  const checkQuizOptionsViaSQL = async () => {
+    const questionToCheck = questions[currentQuestionIndex];
+    if (!questionToCheck) return;
+    
+    toast({
+      title: "Database Check",
+      description: `Checking options in database for question ID: ${questionToCheck.id}`,
+    });
+    
+    try {
+      // Direct SQL query for options
+      const { data, error } = await supabase
+        .from('quiz_options')
+        .select('*')
+        .eq('question_id', questionToCheck.id)
+        .order('sequence_order', { ascending: true });
+      
+      if (error) {
+        console.error('SQL query error:', error);
+        toast({
+          title: "Database Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Log and display results
+      console.log('Database options response:', data);
+      
+      if (!data || data.length === 0) {
+        toast({
+          title: "No Options in Database",
+          description: "This question has no options in the database.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Database Options Found",
+          description: `Found ${data.length} options in the database. See console for details.`,
+          variant: "default",
+        });
+      }
+    } catch (err) {
+      console.error('Error checking options via SQL:', err);
+      toast({
+        title: "Query Error",
+        description: "Error executing database query. See console.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Add this function after the other debug functions
+  const verifyOptionsLoaded = async () => {
+    if (!questions || questions.length === 0) {
+      toast({
+        title: "No Questions Found",
+        description: "There are no questions loaded to verify.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("Verifying options for all questions:", questions);
+    
+    let hasIssues = false;
+    for (const question of questions) {
+      console.log(`Question ${question.id}:`, {
+        text: question.question_text,
+        type: question.question_type,
+        options: question.options
+      });
+
+      if (!question.options || question.options.length === 0) {
+        hasIssues = true;
+        console.error(`Missing options for question ${question.id}`);
+        
+        // Try to fetch options directly from database
+        const { data: optionsData, error: optionsError } = await supabase
+          .from('quiz_options')
+          .select('*')
+          .eq('question_id', question.id);
+
+        if (optionsError) {
+          console.error(`Failed to fetch options for question ${question.id}:`, optionsError);
+        } else {
+          console.log(`Found ${optionsData.length} options in database for question ${question.id}:`, optionsData);
+        }
+      }
+    }
+
+    toast({
+      title: hasIssues ? "Issues Found" : "Verification Complete",
+      description: hasIssues 
+        ? "Some questions are missing options. Check console for details."
+        : "All questions have their options loaded correctly.",
+      variant: hasIssues ? "destructive" : "default",
+    });
+  };
+  
+  // Remove redundant declarations here and use the derived values above
+  const questionsAnswered = userResponses.filter(r => 
+    (r.selectedOptionId && r.selectedOptionId.length > 0) || 
+    (r.textResponse && r.textResponse.length > 0)
+  ).length;
   
   if (isLoading) {
     return (
@@ -692,13 +1319,6 @@ export default function TakeQuiz() {
     );
   }
   
-  const currentQuestion = questions[currentQuestionIndex];
-  const currentResponse = userResponses.find(r => r.questionId === currentQuestion?.id);
-  const questionsAnswered = userResponses.filter(r => 
-    (r.selectedOptionId && r.selectedOptionId.length > 0) || 
-    (r.textResponse && r.textResponse.length > 0)
-  ).length;
-  
   return (
     <div className="container py-8 max-w-4xl mx-auto">
       <Card>
@@ -731,6 +1351,35 @@ export default function TakeQuiz() {
         <CardContent>
           {currentQuestion && (
             <div className="space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">{quiz?.title}</h2>
+                {profile?.role === 'admin' && (
+                  <div className="flex gap-2 flex-wrap">
+                    <Button onClick={verifyQuizFix} variant="outline" size="sm">
+                      Verify SQL Fix
+                    </Button>
+                    <Button onClick={fixSpecificQuestionOptions} variant="secondary" size="sm">
+                      Fix Known Questions
+                    </Button>
+                    <Button onClick={logCurrentQuestionOptions} variant="ghost" size="sm">
+                      <Bug className="mr-1 h-3 w-3" /> Log Options
+                    </Button>
+                    <Button onClick={checkQuizOptionsViaSQL} variant="ghost" size="sm">
+                      DB Check
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={verifyOptionsLoaded}
+                      className="flex items-center gap-2"
+                    >
+                      <Bug className="h-4 w-4" />
+                      Verify Options
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
               <div className="space-y-2">
                 <h3 className="text-lg font-medium">
                   {currentQuestionIndex + 1}. {currentQuestion.question_text}
@@ -742,19 +1391,28 @@ export default function TakeQuiz() {
                 )}
               </div>
               
-              {currentQuestion.question_type === 'multiple_choice' && currentQuestion.options && (
+              {currentQuestion.question_type === 'multiple_choice' && (
                 <RadioGroup 
                   value={currentResponse?.selectedOptionId || ""}
                   onValueChange={(value) => handleOptionSelect(currentQuestion.id, value)}
                 >
-                  {currentQuestion.options.map((option) => (
-                    <div key={option.id} className="flex items-center space-x-2 border rounded-md p-3 mb-2 hover:bg-muted/50">
-                      <RadioGroupItem value={option.id} id={option.id} />
-                      <Label htmlFor={option.id} className="w-full cursor-pointer">
-                        {option.option_text}
-                      </Label>
+                  {currentQuestion.options && currentQuestion.options.length > 0 ? (
+                    currentQuestion.options.map((option) => (
+                      <div key={option.id} className="flex items-center space-x-2 border rounded-md p-3 mb-2 hover:bg-muted/50">
+                        <RadioGroupItem value={option.id} id={option.id} />
+                        <Label htmlFor={option.id} className="w-full cursor-pointer">
+                          {option.option_text}
+                        </Label>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center p-4 border border-dashed rounded-md">
+                      <p className="text-muted-foreground">No options available for this question.</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Please contact an administrator to fix this quiz.
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </RadioGroup>
               )}
               
@@ -775,8 +1433,8 @@ export default function TakeQuiz() {
           <div className="flex gap-2 w-full sm:w-auto">
             <Button 
               variant="outline" 
-              onClick={goToPrevQuestion}
-              disabled={currentQuestionIndex === 0}
+              onClick={goToPrevQuestion} 
+              disabled={currentQuestionIndex === 0} 
               className="w-full sm:w-auto"
             >
               <ChevronLeftCircle className="mr-2 h-4 w-4" />
@@ -785,7 +1443,7 @@ export default function TakeQuiz() {
             
             {currentQuestionIndex < questions.length - 1 ? (
               <Button 
-                onClick={goToNextQuestion}
+                onClick={goToNextQuestion} 
                 className="w-full sm:w-auto"
               >
                 Next

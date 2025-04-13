@@ -30,6 +30,13 @@ import AdminCourseLessons from "./pages/AdminCourseLessons";
 import TakeQuiz from "./pages/TakeQuiz";
 import LessonAnalytics from './components/admin/LessonAnalytics';
 import ProgressPage from './pages/Progress';
+import AdminUserManagement from './pages/AdminUserManagement';
+import AdminAnalytics from './pages/AdminAnalytics';
+import YouTubeSettings from './pages/admin/YouTubeSettings';
+import YouTubeCallback from './pages/admin/YouTubeCallback';
+import Achievements from './pages/Achievements';
+import Incentives from './pages/Incentives';
+import Support from '@/pages/Support';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -103,6 +110,19 @@ const App = () => (
                 <Route path="/progress" element={
                   <Layout>
                     <ProgressPage />
+                  </Layout>
+                } />
+                
+                {/* Achievements and Incentives routes */}
+                <Route path="/achievements" element={
+                  <Layout>
+                    <Achievements />
+                  </Layout>
+                } />
+                
+                <Route path="/incentives" element={
+                  <Layout>
+                    <Incentives />
                   </Layout>
                 } />
                 
@@ -189,23 +209,16 @@ const App = () => (
                     <AdminLearningPaths />
                   </Layout>
                 } />
-                
-                {/* Admin routes for user management and analytics (to be implemented) */}
+
                 <Route path="/admin/users" element={
-                  <Layout requiredRoles={['admin']} showSidebar={true}>
-                    <div className="container py-6">
-                      <h1 className="text-2xl font-bold mb-4">User Management</h1>
-                      <p>Manage users and permissions.</p>
-                    </div>
+                 <Layout requiredRoles={['admin']} showSidebar={true}>
+                    <AdminUserManagement />
                   </Layout>
                 } />
                 
                 <Route path="/admin/analytics" element={
                   <Layout requiredRoles={['admin']} showSidebar={true}>
-                    <div className="container py-6">
-                      <h1 className="text-2xl font-bold mb-4">Admin Analytics</h1>
-                      <p>View detailed analytics and reports.</p>
-                    </div>
+                    <AdminAnalytics />
                   </Layout>
                 } />
                 
@@ -224,16 +237,19 @@ const App = () => (
                   </Layout>
                 } />
                 
-                {/* Community pages */}
-                <Route path="/achievements" element={
-                  <Layout>
-                    <div className="container py-6">
-                      <h1 className="text-2xl font-bold mb-4">Achievements</h1>
-                      <p>View your learning achievements and badges.</p>
-                    </div>
+                <Route path="/admin/youtube-settings" element={
+                  <Layout requiredRoles={['admin']} showSidebar={true}>
+                    <YouTubeSettings />
                   </Layout>
                 } />
                 
+                <Route path="/admin/youtube-callback" element={
+                  <Layout requiredRoles={['admin']} showSidebar={true}>
+                    <YouTubeCallback />
+                  </Layout>
+                } />
+                
+                {/* Community pages */}
                 <Route path="/resources" element={
                   <Layout>
                     <div className="container py-6">
@@ -243,21 +259,18 @@ const App = () => (
                   </Layout>
                 } />
                 
-                <Route path="/settings" element={
+                {/* <Route path="/settings" element={
                   <Layout>
                     <div className="container py-6">
                       <h1 className="text-2xl font-bold mb-4">Settings</h1>
                       <p>Manage your account settings and preferences.</p>
                     </div>
                   </Layout>
-                } />
+                } /> */}
                 
                 <Route path="/support" element={
                   <Layout>
-                    <div className="container py-6">
-                      <h1 className="text-2xl font-bold mb-4">Help & Support</h1>
-                      <p>Get help with using the learning platform.</p>
-                    </div>
+                    <Support />
                   </Layout>
                 } />
               </Route>

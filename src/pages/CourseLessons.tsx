@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft } from 'lucide-react';
+import { awardPoints, checkUserAchievements } from '@/utils/incentivesUtils';
 import { 
   Card, CardContent, CardDescription, CardHeader, CardTitle,
   CardFooter
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { 
-  ChevronLeft, Check, BookOpen, Video, Clock, 
-  ChevronRight, Play, Globe, CheckCircle
+  ChevronRight, Check, BookOpen, Video, Clock, 
+  Globe, CheckCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
@@ -156,63 +159,120 @@ export default function CourseLessons() {
   const updateProgress = async (lessonIndex: number, markCurrentAsCompleted = false) => {
     if (!profile || !courseId || !lessons.length) return;
     
-    // Mark the current lesson as completed if requested
-    if (markCurrentAsCompleted && selectedLesson) {
-      try {
+    try {
+      // Mark the current lesson as completed if requested
+      if (markCurrentAsCompleted && selectedLesson) {
         await supabase.from('user_lessons').upsert({
           user_id: profile.id,
           lesson_id: selectedLesson.id,
+          course_id: courseId,
           completed: true,
+          progress: 100,
           completed_at: new Date().toISOString()
-        });
-      } catch (error) {
-        console.error('Error marking lesson as completed:', error);
+        }, { onConflict: 'user_id, lesson_id' });
       }
-    }
-    
-    // Get all completed lessons for this course
-    try {
+      
+      // Get all completed lessons for this course
       const { data: completedLessonsData } = await supabase
         .from('user_lessons')
         .select('lesson_id')
         .eq('user_id', profile.id)
+        .eq('course_id', courseId)
         .eq('completed', true);
         
       const completedLessonIds = completedLessonsData?.map(item => item.lesson_id) || [];
       
-      // Filter to only include lessons from this course
-      const completedLessonsInThisCourse = lessons.filter(lesson => 
-        completedLessonIds.includes(lesson.id)
-      );
+      // Get all quizzes for this course
+      const { data: courseQuizzes } = await supabase
+        .from('quizzes')
+        .select('id')
+        .eq('course_id', courseId);
+        
+      // Get all completed quizzes for this course
+      const { data: completedQuizzes } = await supabase
+        .from('user_quiz_results')
+        .select('quiz_id')
+        .eq('user_id', profile.id)
+        .eq('course_id', courseId)
+        .eq('passed', true);
+        
+      // Calculate total items and completed items
+      const totalLessons = lessons.length;
+      const totalQuizzes = courseQuizzes?.length || 0;
+      const totalItems = totalLessons + totalQuizzes;
       
-      // Calculate progress based on completed lessons
-      const completedCount = completedLessonsInThisCourse.length;
-      const progress = Math.round((completedCount / lessons.length) * 100);
+      const completedLessonsCount = completedLessonIds.length;
+      const completedQuizzesCount = completedQuizzes?.length || 0;
+      const completedItems = completedLessonsCount + completedQuizzesCount;
       
+      // Calculate progress percentage
+      const progress = Math.round((completedItems / totalItems) * 100);
+      const isComplete = progress === 100;
+      
+      // Update user_courses record
       const { error } = await supabase
         .from('user_courses')
         .upsert({
           user_id: profile.id,
           course_id: courseId,
           progress: progress,
-          completed: progress === 100
-        });
+          completed: isComplete,
+          last_accessed: new Date().toISOString(),
+          completed_at: isComplete ? new Date().toISOString() : null
+        }, { onConflict: 'user_id, course_id' });
         
       if (error) throw error;
       
+      // Update local state
       setUserCourse({ 
         progress: progress, 
-        completed: progress === 100 
+        completed: isComplete 
       });
       
-      if (progress === 100) {
-        toast({
-          title: "Congratulations!",
-          description: "You've completed this course!",
-        });
+      // If course is completed, check achievements and award points
+      if (isComplete) {
+        try {
+          // Award points for course completion
+          const { success: pointsSuccess, error: pointsError } = await awardPoints(
+            profile.id,
+            100, // Points for course completion
+            'Completed course',
+            'course_completion',
+            courseId
+          );
+          
+          if (!pointsSuccess) {
+            console.error('Error awarding points for course completion:', pointsError);
+          } else {
+            toast({
+              title: 'Points Awarded! 🎉',
+              description: "You've earned 100 points for completing this course!",
+              variant: "default",
+            });
+          }
+          
+          // Check for achievements
+          const { success, error: achievementError } = await checkUserAchievements(profile.id);
+          if (!success) {
+            console.error('Error checking achievements:', achievementError);
+          } else {
+            toast({
+              title: 'Course Completed! 🎉',
+              description: 'You may have unlocked new achievements. Check your profile!',
+              variant: "default",
+            });
+          }
+        } catch (error) {
+          console.error('Error processing completion rewards:', error);
+        }
       }
     } catch (error) {
       console.error('Error updating progress:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update progress. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   

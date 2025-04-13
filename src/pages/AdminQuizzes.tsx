@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +14,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, 
   DialogTitle, DialogTrigger 
 } from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
   DropdownMenuLabel, DropdownMenuTrigger 
@@ -42,12 +44,19 @@ interface Course {
   title: string;
 }
 
+interface Lesson {
+  id: string;
+  title: string;
+  course_id: string;
+}
+
 export default function AdminQuizzes() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   
   const [course, setCourse] = useState<Course | null>(null);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -56,6 +65,7 @@ export default function AdminQuizzes() {
     description: '',
     passing_score: 70,
     time_limit: 30,
+    lesson_id: null,
   });
   
   useEffect(() => {
@@ -83,6 +93,16 @@ export default function AdminQuizzes() {
           
         if (quizError) throw quizError;
         setQuizzes(quizData || []);
+        
+        // Fetch lessons for this course
+        const { data: lessonData, error: lessonError } = await supabase
+          .from('course_lessons')
+          .select('id, title, course_id')
+          .eq('course_id', courseId)
+          .order('sequence_order', { ascending: true });
+          
+        if (lessonError) throw lessonError;
+        setLessons(lessonData || []);
         
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -123,6 +143,7 @@ export default function AdminQuizzes() {
             description: currentQuiz.description,
             passing_score: currentQuiz.passing_score,
             time_limit: currentQuiz.time_limit,
+            lesson_id: currentQuiz.lesson_id,
           })
           .eq('id', currentQuiz.id)
           .select();
@@ -141,6 +162,7 @@ export default function AdminQuizzes() {
             description: currentQuiz.description,
             passing_score: currentQuiz.passing_score,
             time_limit: currentQuiz.time_limit,
+            lesson_id: currentQuiz.lesson_id,
           })
           .select();
           
@@ -182,6 +204,7 @@ export default function AdminQuizzes() {
       description: '',
       passing_score: 70,
       time_limit: 30,
+      lesson_id: null,
     });
   };
   
@@ -387,6 +410,26 @@ export default function AdminQuizzes() {
                   </div>
                 </div>
                 
+                <div className="space-y-2">
+                  <label htmlFor="lesson" className="text-sm font-medium">
+                    Associated Lesson (Optional)
+                  </label>
+                  <Select
+                    value={currentQuiz.lesson_id || ''}
+                    onValueChange={(value) => setCurrentQuiz({...currentQuiz, lesson_id: value === 'null' ? null : value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a lesson" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="null">Not associated with any lesson</SelectItem>
+                      {lessons.map((lesson) => (
+                        <SelectItem key={lesson.id} value={lesson.id}>{lesson.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
                 <DialogFooter className="pt-4">
                   <Button variant="outline" type="button" onClick={handleDialogClose}>
                     Cancel
@@ -414,6 +457,7 @@ export default function AdminQuizzes() {
                   <TableHead>Title</TableHead>
                   <TableHead>Passing Score</TableHead>
                   <TableHead>Time Limit</TableHead>
+                  <TableHead>Associated Lesson</TableHead>
                   <TableHead>Questions</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -426,6 +470,13 @@ export default function AdminQuizzes() {
                       <TableCell className="font-medium">{quiz.title}</TableCell>
                       <TableCell>{quiz.passing_score || 70}%</TableCell>
                       <TableCell>{quiz.time_limit || 30} minutes</TableCell>
+                      <TableCell>
+                        {quiz.lesson_id ? (
+                          lessons.find(l => l.id === quiz.lesson_id)?.title || 'Unknown lesson'
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Course-level quiz</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           <FileQuestion className="mr-1 h-3 w-3" />
@@ -474,11 +525,9 @@ export default function AdminQuizzes() {
                         <BookOpen className="h-8 w-8 text-muted-foreground mb-2" />
                         <p className="text-muted-foreground">No quizzes created yet</p>
                         <p className="text-sm text-muted-foreground mb-4">Create your first quiz to assess student learning</p>
-                        <DialogTrigger asChild>
-                          <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Create Quiz
-                          </Button>
-                        </DialogTrigger>
+                        <Button onClick={() => setIsDialogOpen(true)}>
+                          <Plus className="mr-2 h-4 w-4" /> Create Quiz
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
