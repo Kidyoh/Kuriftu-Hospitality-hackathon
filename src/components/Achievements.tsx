@@ -48,7 +48,7 @@ export default function Achievements() {
         setAchievements(mockAchievements);
         setLoading(false);
       } catch (err) {
-        setError('Failed to load achievements');
+        setError('Achievments arent available, will be updated soon');
         setLoading(false);
       }
     };

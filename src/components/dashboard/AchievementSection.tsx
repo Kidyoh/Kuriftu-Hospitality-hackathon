@@ -141,7 +141,7 @@ export function AchievementSection() {
         setAchievements(sortedAchievements.slice(0, 4));
       } catch (error) {
         console.error("Error fetching achievements:", error);
-        setError("Failed to load achievements");
+        setError("Achievements arent available, will be updated soon");
       } finally {
         setIsLoading(false);
       }

@@ -43,7 +43,7 @@ export function AchievementTester() {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'Failed to load achievements'
+          description: 'Achievements arent available, will be updated soon'
         });
         return;
       }
